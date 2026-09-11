@@ -1,0 +1,107 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- ヘルパー ----
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function myFacilityId() {
+      return myUser().facilityId;
+    }
+
+    function myRole() {
+      return myUser().role;
+    }
+
+    function isMember(facilityId) {
+      return isSignedIn() && myFacilityId() == facilityId;
+    }
+
+    function isEditor(facilityId) {
+      return isMember(facilityId) && (myRole() == 'admin' || myRole() == 'staff');
+    }
+
+    function isAdmin(facilityId) {
+      return isMember(facilityId) && myRole() == 'admin';
+    }
+
+    // ---- 施設コード -> facilityId の解決（ログイン時に使用） ----
+    // ログイン済みユーザーのみ参照可。書き込みは新規施設登録時のみ。
+    match /facilityCodes/{code} {
+      allow read: if isSignedIn();
+      // コードは施設IDへのポインタに過ぎず、実際のアクセス制御は
+      // 各ドキュメントの isMember()/isEditor() が担う。ここでは
+      // 「既存のコードを上書きできない」ことだけを保証する。
+      allow create: if isSignedIn()
+        && !exists(/databases/$(database)/documents/facilityCodes/$(code))
+        && request.resource.data.keys().hasOnly(['facilityId'])
+        && request.resource.data.facilityId is string;
+      allow update, delete: if false;
+    }
+
+    // ---- 施設 ----
+    // facilityId は「設立者(最初のadmin)のuid」をそのままドキュメントIDとして使う。
+    // これにより「他人の施設IDを騙って自分をadminとして登録する」ことができなくなる
+    // (自分のuidと一致するfacilityIdしか名乗れないため)。
+    match /facilities/{facilityId} {
+      allow create: if isSignedIn() && facilityId == request.auth.uid;
+      allow read: if isMember(facilityId);
+      allow update: if isAdmin(facilityId);
+      allow delete: if false;
+    }
+
+    // ---- ユーザー（施設への所属・権限） ----
+    match /users/{uid} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == uid || resource.data.facilityId == myFacilityId()
+      );
+
+      // 自己登録（新規施設のadminとして。facilityId は自分のuidと一致する場合のみ）、
+      // または既存adminによる職員追加（追加先は自分の施設のみ）
+      allow create: if isSignedIn() && (
+        (request.auth.uid == uid && request.resource.data.role == 'admin' && request.resource.data.facilityId == uid)
+        ||
+        (isAdmin(request.resource.data.facilityId) && request.resource.data.role in ['staff', 'viewer'])
+      );
+
+      // 権限変更・無効化は同施設のadminのみ。自分自身の名前程度の更新は自分でも可。
+      allow update: if isSignedIn() && (
+        (request.auth.uid == uid && request.resource.data.facilityId == resource.data.facilityId && request.resource.data.role == resource.data.role)
+        ||
+        isAdmin(resource.data.facilityId)
+      );
+
+      allow delete: if false; // 退職者は role を 'disabled' に更新するのみ。削除はしない。
+    }
+
+    // ---- 個体・記録・体重（施設配下） ----
+    match /facilities/{facilityId}/animals/{animalId} {
+      allow read: if isMember(facilityId);
+      allow create: if isEditor(facilityId);
+      // 通常の編集はstaff/adminどちらも可。ただし「deletedAt(削除・復元)」の変更だけは
+      // admin限定とする（役割定義: 個体の削除はadminのみ）。
+      allow update: if isAdmin(facilityId)
+        || (isEditor(facilityId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['deletedAt']));
+      allow delete: if isAdmin(facilityId); // 物理削除(ゴミ箱からの完全削除)も管理者のみ
+
+      match /logs/{logId} {
+        allow read: if isMember(facilityId);
+        allow create, update: if isEditor(facilityId);
+        allow delete: if isAdmin(facilityId);
+      }
+
+      match /weights/{weightId} {
+        allow read: if isMember(facilityId);
+        allow create, update: if isEditor(facilityId);
+        allow delete: if isAdmin(facilityId);
+      }
+    }
+  }
+}

@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>動物健康管理アプリ（クラウド版）</title>
+  <style>
+    :root {
+      --bg-main: #FAF6EE;
+      --card-bg: #FFFFFF;
+      --text-main: #4A4A4A;
+      --text-sub: #8E8E93;
+      --accent-green: #38C6A3;
+      --accent-orange: #FFC069;
+      --accent-red: #FF9B9B;
+      --border-radius: 18px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      margin: 0;
+      padding: 16px;
+      padding-bottom: 60px;
+    }
+    .screen { display: none; }
+    .screen.active { display: block; }
+    .editor-only, .admin-only { display: none; }
+
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .header-title { font-size: 1.2rem; font-weight: bold; }
+    .btn-back { background: #FFF; border: 1px solid #E0E0E0; border-radius: 20px; padding: 6px 14px; font-size: 0.8rem; cursor: pointer; }
+    .btn-primary { width: 100%; background: var(--accent-green); color: white; border: none; padding: 14px; border-radius: 24px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+    .btn-primary:disabled { opacity: .6; }
+    .btn-secondary { width: 100%; background: #FFF; color: var(--text-main); border: 1px solid #DDD; padding: 12px; border-radius: 24px; font-size: .9rem; cursor: pointer; }
+    .btn-danger { background: #FF9B9B; color: white; border: none; padding: 8px 16px; border-radius: 14px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
+
+    .search-box { width: 100%; padding: 10px 14px; border: 1px solid #E0E0E0; border-radius: 20px; background: #FFF; font-size: 0.9rem; margin-bottom: 12px; outline: none; }
+
+    .filter-tab-container { display: flex; gap: 8px; margin-bottom: 14px; }
+    .filter-tab { flex: 1; text-align: center; padding: 8px; background: #EAEAEA; border-radius: 14px; font-size: 0.85rem; cursor: pointer; color: #666; font-weight: bold; }
+    .filter-tab.active { background: var(--text-main); color: white; }
+    .filter-tab.active-warn { background: var(--accent-red); color: white; }
+
+    .form-card { background: var(--card-bg); border-radius: var(--border-radius); padding: 16px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+    .card-title { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 12px; font-weight: bold; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: 0.8rem; color: var(--text-sub); margin-bottom: 6px; display: block; }
+    .input-field { width: 100%; border: 1px solid #E5E5E5; border-radius: 12px; padding: 10px 12px; background: #FFF; font-size: 0.9rem; outline: none; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .pill-group { display: flex; gap: 8px; background: #F5F5F5; padding: 4px; border-radius: 20px; margin-bottom: 8px; flex-wrap: wrap; }
+    .pill-btn { flex: 1; min-width: 70px; text-align: center; padding: 8px 0; font-size: 0.8rem; border-radius: 16px; cursor: pointer; color: var(--text-sub); }
+    .pill-btn.active { background: var(--accent-green); color: white; font-weight: bold; }
+    .pill-btn.active-orange { background: var(--accent-orange); color: white; font-weight: bold; }
+    .pill-btn.active-red { background: var(--accent-red); color: white; font-weight: bold; }
+
+    .tag-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .tag-btn { background: #FFF; border: 1px solid #DDD; border-radius: 16px; padding: 6px 12px; font-size: 0.8rem; cursor: pointer; }
+    .tag-btn.selected { background: #E0F2FE; border-color: #7DD3FC; color: #0369A1; font-weight: bold; }
+
+    .pet-card { background: var(--card-bg); border-radius: var(--border-radius); padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; cursor: pointer; gap: 10px; flex-wrap: wrap; }
+    .pet-info { display: flex; align-items: center; gap: 12px; }
+    .pet-avatar { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; background: #E0F2FE; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0; }
+    .badge-category { background: #E8F8F5; color: var(--accent-green); font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; font-weight: bold; margin-left: 6px; }
+
+    .nav-tab-container { display: flex; gap: 8px; margin-bottom: 12px; }
+    .nav-tab { flex: 1; text-align: center; padding: 10px; background: #EAEAEA; border-radius: 14px; font-size: 0.85rem; cursor: pointer; color: #666; font-weight: bold; }
+    .nav-tab.active { background: var(--accent-green); color: white; }
+
+    .time-tab-container { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .time-tab { background: #FFF; border: 2px solid transparent; border-radius: 14px; padding: 10px; text-align: center; font-size: 0.85rem; cursor: pointer; }
+    .time-tab.active { border-color: var(--accent-green); background: #E8F8F5; font-weight: bold; }
+
+    .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .action-btn { background: var(--card-bg); border-radius: 16px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+
+    .timeline-card { background: var(--card-bg); border-radius: var(--border-radius); padding: 16px; }
+    .tl-item { display: flex; gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px dashed #EEE; position: relative; }
+    .tl-time-box { width: 80px; text-align: left; font-size: 0.75rem; color: var(--text-sub); }
+    .tl-date { font-weight: bold; color: var(--text-main); font-size: 0.8rem; }
+    .tl-content { flex: 1; }
+    .tl-badge { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; }
+    .badge-good { background: #E8F8F5; color: #10B981; }
+    .badge-warn { background: #FEF3C7; color: #D97706; }
+    .badge-bad { background: #FEE2E2; color: #EF4444; }
+    .tl-img { width: 100px; height: 100px; object-fit: cover; border-radius: 10px; margin-top: 8px; cursor: pointer; border: 1px solid #DDD; }
+    .tl-actions { position: absolute; right: 0; top: 0; display: flex; gap: 6px; }
+    .tl-action-btn { background: #F0F0F0; border: none; border-radius: 6px; padding: 2px 8px; font-size: 0.7rem; color: #555; cursor: pointer; }
+    .tl-action-btn.delete { background: #FEE2E2; color: #EF4444; }
+
+    .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5); display: none; justify-content: flex-end; flex-direction: column; z-index:100; }
+    .modal-overlay.active { display: flex; }
+    .modal-sheet { background: var(--bg-main); border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 20px; max-height: 88vh; overflow-y: auto; }
+
+    .image-modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index:200; }
+    .image-modal.active { display: flex; }
+    .image-modal img { max-width: 95%; max-height: 85vh; border-radius: 8px; }
+
+    .category-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+    .category-btn { background: #FFF; border: 2px solid #E0E0E0; border-radius: 16px; padding: 20px 16px; text-align: center; cursor: pointer; font-weight: bold; font-size: 1rem; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+    .category-btn:hover, .category-btn:active { border-color: var(--accent-green); background: #E8F8F5; }
+
+    .camera-btn-label {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      background: #E8F8F5; color: var(--accent-green); border: 1px dashed var(--accent-green);
+      border-radius: 12px; padding: 10px 14px; font-size: 0.85rem; font-weight: bold;
+      cursor: pointer; width: 100%; box-sizing: border-box; margin-top: 4px;
+    }
+    .chart-container { background: #FFF; border-radius: var(--border-radius); padding: 16px; margin-top: 10px; }
+    canvas { width: 100% !important; height: 220px !important; }
+
+    /* ---- 追加: 認証・共通バー ---- */
+    .auth-wrap { max-width: 420px; margin: 40px auto; }
+    .auth-title { text-align: center; font-size: 1.3rem; font-weight: bold; margin-bottom: 6px; }
+    .auth-sub { text-align: center; font-size: .82rem; color: var(--text-sub); margin-bottom: 24px; }
+    .auth-link { text-align: center; margin-top: 14px; font-size: .85rem; }
+    .auth-link a { color: var(--accent-green); text-decoration: none; font-weight: bold; }
+
+    #appBar {
+      display: none; align-items: center; justify-content: space-between; gap: 10px;
+      background: #FFF; border-radius: 16px; padding: 10px 14px; margin-bottom: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04); flex-wrap: wrap; position: sticky; top: 8px; z-index: 20;
+    }
+    #appBar .abar-left { font-size: .78rem; line-height: 1.3; }
+    #appBar .abar-left b { display: block; font-size: .92rem; }
+    #appBar .abar-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    #appBar .abar-actions button { background: #F5F5F5; border: none; border-radius: 12px; padding: 6px 10px; font-size: .75rem; cursor: pointer; }
+
+    .toast {
+      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
+      background: var(--text-main); color: #fff; padding: 10px 18px; border-radius: 20px;
+      font-size: .85rem; opacity: 0; pointer-events: none; transition: all .25s; z-index: 300; max-width: 88vw; text-align: center;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.error { background: #EF4444; }
+
+    #printArea { display: none; }
+    @media print {
+      body * { visibility: hidden; }
+      #printArea, #printArea * { visibility: visible; }
+      #printArea { display: block; position: absolute; top: 0; left: 0; width: 100%; padding: 20px; }
+      #printArea table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 12px; }
+      #printArea th, #printArea td { border: 1px solid #999; padding: 4px 8px; text-align: left; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 共通ヘッダーバー（ログイン後の全画面で表示） -->
+  <div id="appBar">
+    <div class="abar-left">
+      <b id="facilityNameLabel">-</b>
+      <span id="userNameLabel">-</span>
+    </div>
+    <div class="abar-actions">
+      <button onclick="showScreen('screenHome')">🏠 ホーム</button>
+      <button id="staffNavBtn" onclick="openStaffScreen()" style="display:none;">👥 職員管理</button>
+      <button onclick="openTrashScreen()">🗑 ゴミ箱</button>
+      <button id="logoutBtn">🚪 ログアウト</button>
+    </div>
+  </div>
+
+  <!-- 認証読み込み中 -->
+  <div id="screenAuthLoading" class="screen active">
+    <div style="text-align:center;padding:60px 0;color:var(--text-sub);">読み込み中...</div>
+  </div>
+
+  <!-- ログイン画面 -->
+  <div id="screenLogin" class="screen">
+    <div class="auth-wrap">
+      <div class="auth-title">🐾 AniMediRec</div>
+      <div class="auth-sub">施設コードとアカウントでログインしてください</div>
+      <form id="loginForm" class="form-card">
+        <div class="form-group">
+          <label class="form-label">施設コード</label>
+          <input type="text" id="loginFacilityCode" class="input-field" placeholder="例: A1B2C3" required style="text-transform:uppercase;">
+        </div>
+        <div class="form-group">
+          <label class="form-label">メールアドレス</label>
+          <input type="email" id="loginEmail" class="input-field" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label">パスワード</label>
+          <input type="password" id="loginPassword" class="input-field" required autocomplete="current-password">
+        </div>
+        <button type="submit" id="loginSubmitBtn" class="btn-primary">ログイン</button>
+      </form>
+      <div class="auth-link">はじめて使う施設の方は <a href="#" id="toRegisterLink">施設を新規登録</a></div>
+    </div>
+  </div>
+
+  <!-- 施設新規登録画面 -->
+  <div id="screenRegister" class="screen">
+    <div class="auth-wrap">
+      <div class="auth-title">🏠 施設の新規登録</div>
+      <div class="auth-sub">登録すると、この施設専用の「施設コード」が発行されます。<br>職員にはこのコードを共有してください。</div>
+      <form id="registerForm" class="form-card">
+        <div class="form-group">
+          <label class="form-label">施設名</label>
+          <input type="text" id="regFacilityName" class="input-field" placeholder="○○動物保護センター" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">あなたの氏名（管理者になります）</label>
+          <input type="text" id="regAdminName" class="input-field" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">メールアドレス</label>
+          <input type="email" id="regEmail" class="input-field" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label">パスワード（6文字以上）</label>
+          <input type="password" id="regPassword" class="input-field" required minlength="6" autocomplete="new-password">
+        </div>
+        <button type="submit" id="registerSubmitBtn" class="btn-primary">施設を登録する</button>
+      </form>
+      <div class="auth-link">すでに登録済みの方は <a href="#" id="toLoginLink">ログインへ戻る</a></div>
+    </div>
+  </div>
+
+  <!-- 1. ホーム画面 -->
+  <div id="screenHome" class="screen">
+    <div class="header">
+      <div>
+        <div style="font-size:0.8rem;color:var(--text-sub);">健康・飼育管理</div>
+        <div class="header-title">動物の類（カテゴリ）を選択</div>
+      </div>
+    </div>
+    <div class="category-grid">
+      <div class="category-btn" onclick="selectCategory('犬・猫', '🐶')">🐶🐱 犬・猫</div>
+      <div class="category-btn" onclick="selectCategory('哺乳類', '🐹')">🐹 哺乳類</div>
+      <div class="category-btn" onclick="selectCategory('爬虫類・両生類', '🦎')">🦎🐸 爬虫類・両生類</div>
+      <div class="category-btn" onclick="selectCategory('げっ歯類', '🐭')">🐭 げっ歯類</div>
+      <div class="category-btn" onclick="selectCategory('鳥類', '🦜')">🦜 鳥類</div>
+      <div class="category-btn" onclick="selectCategory('その他', '🐾')">🐾 その他</div>
+    </div>
+  </div>
+
+  <!-- 2. 動物一覧画面 -->
+  <div id="screenList" class="screen">
+    <div class="header">
+      <div>
+        <div style="font-size:0.8rem;color:var(--text-sub);" id="selectedCategoryName">犬・猫</div>
+        <div class="header-title">動物一覧</div>
+      </div>
+      <button class="btn-back" onclick="showScreen('screenHome')">🏠 ホームへ</button>
+    </div>
+    <input type="text" id="searchInput" class="search-box" placeholder="🔍 名前・種類・管理番号で検索..." oninput="renderAnimalList()">
+    <div class="filter-tab-container">
+      <div class="filter-tab active" id="tabFilterAll" onclick="setFilterMode('all')">全個体を表示</div>
+      <div class="filter-tab" id="tabFilterWarn" onclick="setFilterMode('warn')">⚠️ 異常・要観察の個体</div>
+    </div>
+    <button class="btn-primary editor-only" style="margin-bottom:10px;" onclick="openAddAnimalScreen()">＋ 新しい個体を登録する</button>
+    <button class="btn-secondary" style="margin-bottom:16px;" onclick="exportAnimalListCSV()">⬇️ 個体一覧をCSVで書き出す</button>
+    <div id="petListContainer"></div>
+  </div>
+
+  <!-- 3. 個体登録・編集画面 -->
+  <div id="screenAdd" class="screen">
+    <div class="header">
+      <button class="btn-back" onclick="showScreen('screenList')">← 戻る</button>
+      <div class="header-title" id="formHeaderTitle">個体を登録</div>
+      <div style="width:50px;"></div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-group">
+        <label class="form-label">写真 (任意)</label>
+        <label class="camera-btn-label">
+          📷 タップして写真を撮影・選択
+          <input type="file" id="addPetPhoto" accept="image/*" capture="environment" style="display:none;" onchange="previewPetPhoto(this)">
+        </label>
+        <div id="addPetPhotoPreview" style="margin-top:8px;font-size:0.75rem;color:var(--text-sub);"></div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-group">
+        <label class="form-label">個体管理番号 (任意・重複不可)</label>
+        <input type="text" id="addCode" class="input-field" placeholder="例: 2026-0012 / DC-0012（空欄でも登録できます）">
+      </div>
+
+      <div class="form-group" id="dogCatTypeGroup" style="display:none;">
+        <label class="form-label">種別（犬か猫を選択）</label>
+        <div class="pill-group">
+          <div class="pill-btn active" id="btnTypeDog" onclick="setDogCatType('犬', '🐶', this)">🐶 犬</div>
+          <div class="pill-btn" id="btnTypeCat" onclick="setDogCatType('猫', '🐱', this)">🐱 猫</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">名前</label>
+        <input type="text" id="addName" class="input-field" placeholder="そら">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">種類（犬種・猫種・品種など）</label>
+        <input type="text" id="addBreed" class="input-field" placeholder="チワワ / オカメインコ / ヒョウモントカゲモドキ 等">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">生年月日の分かり方</label>
+        <select id="addBirthAccuracy" class="input-field">
+          <option>正確に分かる</option>
+          <option>推定</option>
+          <option>分からない (保護など)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">生年月日</label>
+        <input type="date" id="addBirth" class="input-field">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">家・施設に来た日 (任意)</label>
+        <input type="date" id="addArrive" class="input-field">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">部屋・エリア (ケージ番号など)</label>
+        <input type="text" id="addArea" class="input-field" placeholder="2Fキャットルーム / A-3ケージ">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">性別</label>
+        <select id="addSex" class="input-field">
+          <option>男の子</option>
+          <option>女の子</option>
+          <option selected>不明</option>
+        </select>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">体格</label>
+          <input type="text" id="addBody" class="input-field" placeholder="小型">
+        </div>
+        <div class="form-group">
+          <label class="form-label">体重の単位</label>
+          <div class="pill-group" style="margin-bottom:0;">
+            <div class="pill-btn active" id="btnUnitKg">kg</div>
+            <div class="pill-btn" id="btnUnitG">g</div>
+          </div>
+        </div>
+      </div>
+      <input type="hidden" id="addWeightUnit" value="kg">
+
+      <div class="form-group">
+        <label class="form-label">体重 (<span id="weightUnitLabel">kg</span>)</label>
+        <input type="number" step="0.01" id="addWeight" class="input-field" placeholder="3.2">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">性格</label>
+        <input type="text" id="addPersonality" class="input-field" placeholder="人馴れしている・噛み癖あり等">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">既往歴・アレルギー</label>
+        <textarea id="addHistory" class="input-field" rows="2" placeholder="2023年 膝蓋骨脱臼の治療"></textarea>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="card-title">かかりつけ病院 (任意)</div>
+      <div class="form-group">
+        <label class="form-label">病院名</label>
+        <input type="text" id="addHospital" class="input-field" placeholder="○○動物病院">
+      </div>
+      <div class="form-group">
+        <label class="form-label">電話番号</label>
+        <input type="text" id="addPhone" class="input-field" placeholder="03-0000-0000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">メモ (診察時間・担当の先生など)</label>
+        <input type="text" id="addHospMemo" class="input-field" placeholder="水曜休診／田中先生">
+      </div>
+    </div>
+
+    <button class="btn-primary" id="saveAnimalBtn" onclick="saveAnimalForm()">保存を完了する</button>
+  </div>
+
+  <!-- 4. 詳細（タイムライン・カルテ）画面 -->
+  <div id="screenDetail" class="screen">
+    <div class="header">
+      <button class="btn-back" onclick="showScreen('screenList')">← 動物一覧へ戻る</button>
+      <div class="header-title">記録</div>
+      <div style="width:50px;"></div>
+    </div>
+
+    <div class="pet-card" style="cursor:default;flex-direction:column;align-items:flex-start;gap:10px;">
+      <div style="display:flex;justify-content:space-between;width:100%;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div class="pet-info">
+          <div id="detailAvatarContainer"></div>
+          <div>
+            <div style="display:flex;align-items:center;flex-wrap:wrap;">
+              <span class="pet-name" id="detailName">-</span>
+              <span class="badge-category" id="detailCategory">-</span>
+            </div>
+            <div style="font-size:0.75rem;color:var(--text-sub);" id="detailSub">-</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn-back editor-only" id="editAnimalBtn">⚙️ 編集</button>
+          <button class="btn-back" onclick="printAnimalChart()">🖨 カルテ印刷</button>
+        </div>
+      </div>
+      <div style="width:100%;text-align:right;">
+        <button class="btn-danger admin-only" onclick="confirmDeleteAnimal()">🗑️ 個体を削除</button>
+      </div>
+    </div>
+
+    <div class="nav-tab-container">
+      <div class="nav-tab active" id="navTimeline" onclick="switchMainView('timeline')">📋 タイムライン</div>
+      <div class="nav-tab" id="navWeight" onclick="switchMainView('weight')">📈 体重推移グラフ</div>
+    </div>
+
+    <div id="timelineViewArea">
+      <input type="text" id="detailSearchInput" class="search-box" placeholder="🔍 この個体の全期間から「下痢」「抗生剤」などで検索..." oninput="setDetailSearch(this.value)">
+
+      <div class="form-card" id="datePickerCard" style="padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <span style="font-size:0.85rem;font-weight:bold;">📅 振り返る日付:</span>
+        <input type="date" id="timelineDatePicker" class="input-field" style="width:auto;padding:6px 10px;" onchange="onDateChanged()">
+      </div>
+
+      <div class="time-tab-container" id="timeTabContainer">
+        <div class="time-tab active" id="tabMorning" onclick="switchTimezone('朝')">☀️ 朝</div>
+        <div class="time-tab" id="tabNoon" onclick="switchTimezone('昼')">🌤️ 昼</div>
+        <div class="time-tab" id="tabNight" onclick="switchTimezone('夜')">🌙 夜</div>
+      </div>
+
+      <div class="editor-only">
+        <div style="font-size:0.85rem;font-weight:bold;margin-bottom:8px;">記録を追加</div>
+        <div class="action-grid">
+          <div class="action-btn" onclick="openLogModal(null, '排泄物')"><span style="font-size:1.4rem">💩</span><span style="font-size:0.75rem">排泄物</span></div>
+          <div class="action-btn" onclick="openLogModal(null, '食事・嘔吐')"><span style="font-size:1.4rem">🍚</span><span style="font-size:0.75rem">食事・嘔吐</span></div>
+          <div class="action-btn" onclick="openLogModal(null, '元気・様子')"><span style="font-size:1.4rem">⚡</span><span style="font-size:0.75rem">元気・様子</span></div>
+          <div class="action-btn" onclick="openLogModal(null, '爪切り')"><span style="font-size:1.4rem">✂️</span><span style="font-size:0.75rem">爪切り</span></div>
+          <div class="action-btn" onclick="openLogModal(null, '投薬・通院')"><span style="font-size:1.4rem">💊</span><span style="font-size:0.75rem">投薬・通院</span></div>
+          <div class="action-btn" onclick="openLogModal(null, '自由備考')"><span style="font-size:1.4rem">📝</span><span style="font-size:0.75rem">自由備考</span></div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:0.85rem;font-weight:bold;" id="timelineTitle">朝のタイムライン</div>
+        <button class="btn-back" style="font-size:.72rem;padding:4px 10px;" onclick="exportCurrentAnimalCSV()">⬇️ CSV</button>
+      </div>
+      <div class="timeline-card" id="timelineList"></div>
+    </div>
+
+    <div id="weightViewArea" style="display:none;">
+      <div class="form-card editor-only">
+        <div class="card-title">⚖️ 新しい体重を記録</div>
+        <div style="display:flex;gap:8px;">
+          <input type="number" step="0.01" id="newWeightInput" class="input-field" placeholder="例: 3.3">
+          <button class="btn-primary" style="width:100px;padding:8px;" onclick="addWeightRecord()">記録</button>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <div style="font-size:0.9rem;font-weight:bold;margin-bottom:10px;">📊 体重の変化 (折れ線グラフ)</div>
+        <canvas id="weightChart"></canvas>
+      </div>
+
+      <div class="form-card" style="margin-top:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div class="card-title" style="margin:0;">体重記録履歴（編集・削除）</div>
+          <button class="btn-back" style="font-size:.72rem;padding:4px 10px;" onclick="exportCurrentAnimalJSON()">⬇️ JSON</button>
+        </div>
+        <div id="weightHistoryList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. ゴミ箱画面 -->
+  <div id="screenTrash" class="screen">
+    <div class="header">
+      <button class="btn-back" onclick="showScreen('screenList')">← 戻る</button>
+      <div class="header-title">🗑 ゴミ箱</div>
+      <div style="width:50px;"></div>
+    </div>
+    <div class="form-card" style="font-size:.82rem;color:var(--text-sub);">
+      削除された個体は30日間ここに保管されます。「復元」で元に戻せます。「完全削除」は管理者のみ・取り消せません。
+    </div>
+    <div id="trashList"></div>
+  </div>
+
+  <!-- 6. 職員管理画面（admin専用） -->
+  <div id="screenStaff" class="screen">
+    <div class="header">
+      <button class="btn-back" onclick="showScreen('screenHome')">← 戻る</button>
+      <div class="header-title">👥 職員管理</div>
+      <div style="width:50px;"></div>
+    </div>
+
+    <div class="form-card">
+      <div class="card-title">この施設の施設コード</div>
+      <div style="font-size:1.3rem;font-weight:bold;letter-spacing:.1em;" id="staffFacilityCode">-</div>
+      <div style="font-size:.78rem;color:var(--text-sub);margin-top:6px;">新しい職員はこのコード＋発行したメール／パスワードでログインできます。</div>
+    </div>
+
+    <div class="form-card">
+      <div class="card-title">職員を追加</div>
+      <form id="staffInviteForm">
+        <div class="form-group">
+          <label class="form-label">氏名</label>
+          <input type="text" id="inviteName" class="input-field" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">メールアドレス</label>
+          <input type="email" id="inviteEmail" class="input-field" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">初期パスワード（6文字以上・後で本人が変更してください）</label>
+          <input type="text" id="invitePassword" class="input-field" required minlength="6">
+        </div>
+        <div class="form-group">
+          <label class="form-label">権限</label>
+          <select id="inviteRole" class="input-field">
+            <option value="staff">職員（記録の追加・編集）</option>
+            <option value="viewer">閲覧のみ</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary">追加する</button>
+      </form>
+    </div>
+
+    <div class="form-card">
+      <div class="card-title">登録済みの職員</div>
+      <div id="staffList"></div>
+    </div>
+
+    <div class="form-card">
+      <div class="card-title">全データバックアップ（JSON）</div>
+      <div style="font-size:.78rem;color:var(--text-sub);margin-bottom:10px;">
+        施設内の全個体・全記録を1ファイルにまとめて書き出します。読み取り回数を消費するため、月1回程度の実行を推奨します。
+      </div>
+      <button class="btn-secondary" onclick="exportFacilityBackupJSON()">⬇️ 今すぐバックアップを作成</button>
+    </div>
+  </div>
+
+  <!-- 各種モーダル -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-weight:bold;font-size:1.1rem;" id="modalTitle">記録入力</div>
+        <button class="btn-back" onclick="closeLogModal()">閉じる</button>
+      </div>
+
+      <div id="modalFormContent"></div>
+
+      <div class="form-group">
+        <label class="form-label">📅 記録日時</label>
+        <div class="grid-2">
+          <input type="date" id="modalDate" class="input-field">
+          <input type="time" id="modalTime" class="input-field">
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:12px;">
+        <label class="form-label">📷 状態の写真（排泄物・嘔吐物など）</label>
+        <label class="camera-btn-label">
+          📸 カメラを起動して撮影 / 写真を選択
+          <input type="file" id="modalPhoto" accept="image/*" capture="environment" style="display:none;" onchange="previewModalPhoto(this)">
+        </label>
+        <div id="modalPhotoPreview" style="margin-top:4px;font-size:0.75rem;color:var(--text-sub);"></div>
+        <div id="existingPhotoNotice" style="font-size:0.75rem;color:var(--text-sub);margin-top:4px;"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">📝 備考・気になったこと</label>
+        <textarea id="modalMemo" class="input-field" rows="2" placeholder="変わったことがあった際に自由に記入してください"></textarea>
+      </div>
+
+      <button class="btn-primary" id="saveLogBtn" onclick="saveLogRecord()">保存する</button>
+    </div>
+  </div>
+
+  <div class="image-modal" id="imageModal" onclick="closeImageModal()">
+    <img id="enlargedImage" src="" alt="拡大写真">
+  </div>
+
+  <!-- 印刷用カルテ(通常時は非表示。印刷時のみ表示される) -->
+  <div id="printArea"></div>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myUser() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isMember(facilityId) {
+      return isSignedIn() && myUser().facilityId == facilityId;
+    }
+
+    function isEditor(facilityId) {
+      return isMember(facilityId) && (myUser().role == 'admin' || myUser().role == 'staff');
+    }
+
+    // facilities/{facilityId}/animals/{animalId}/... に写真を保存する。
+    // 5MB上限はクライアント側で圧縮済みであることを前提とした保険。
+    match /facilities/{facilityId}/{allPaths=**} {
+      allow read: if isMember(facilityId);
+      // write はアップロード(create/update)・削除(delete)をまとめて許可する。
+      // 削除リクエストには request.resource が無いため、サイズ・形式チェックは
+      // アップロード時(request.resourceが存在する場合)のみ適用する。
+      allow write: if isEditor(facilityId) && (
+        request.resource == null ||
+        (request.resource.size < 5 * 1024 * 1024 && request.resource.contentType.matches('image/.*'))
+      );
+    }
+  }
+}
