@@ -451,6 +451,21 @@ Firebase側の実際の動作（ログイン・Firestore読み書き・Storage�
   すると管理者自身がログアウトされる。対策：セカンダリの`initializeApp()`インスタンス
   （別名を付けて2つ目のFirebaseAppを作る）でユーザー作成だけを行い、完了したら
   `deleteApp()`で片付ける。
+- **`createUserWithEmailAndPassword`が成功した瞬間に`onAuthStateChanged`が発火し、
+  まだ後続のFirestore書き込み(`setDoc`)が終わっていないタイミングで割り込む**:
+  施設の新規登録画面で実際に踏んだ不具合。`onAuthStateChanged`が「`users/{uid}`が
+  まだ無い」と判断して`signOut()`してしまい、登録処理内で並行して実行中だった
+  残りの`setDoc`が認証切れで宙に浮き、ボタンが「登録中...」のまま永久に固まった
+  （エラーも出ない）。ログイン処理でも同様に、施設コードの検証（`loginWithFacility`
+  内）が終わる前に`onAuthStateChanged`が先に`screenHome`へ遷移してしまう
+  （検証失敗時に一瞬だけ見えてすぐ戻される）という軽微な副作用があった。
+  対策：`authFlowInProgress`のようなフラグを用意し、`registerFacility`/
+  `loginWithFacility`の実行中は`onAuthStateChanged`のメイン処理を止める。
+  画面遷移などその処理が本来担っていたロジックは`afterSignedIn(fbUser)`という
+  関数に切り出し、`registerFacility`/`loginWithFacility`が完了した直後に
+  呼び出し元から明示的に呼ぶ。**`onAuthStateChanged`のコールバックとその契機となった
+  自分自身の処理（サインアップ・サインイン関数）は非同期に競合しうる**、という
+  一般的な教訓として憶えておく。
 - **`facilityId`を自由入力にすると、他人の施設IDを名乗って自分をadminとして
   登録できてしまう**: `users/{uid}`作成ルールで`role=='admin'`の自己登録を無条件に許すと、
   誰でも既存の`facilityId`を指定してadminになりすませる。対策：新規施設の`facilityId`を

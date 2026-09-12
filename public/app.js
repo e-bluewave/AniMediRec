@@ -189,6 +189,10 @@ const state = {
   dogCatIcon: "🐶",
 };
 
+// 施設登録・ログイン処理の途中でonAuthStateChangedが介入し、
+// users/{uid}がまだ存在しないタイミングでsignOutしてしまう競合状態を防ぐためのフラグ
+let authFlowInProgress = false;
+
 let unsubAnimals = null;
 let unsubLogs = null;
 let unsubWeights = null;
@@ -248,42 +252,52 @@ function genFacilityCode() {
 }
 
 async function registerFacility(facilityName, adminName, email, password) {
-  const cred = await createUserWithEmailAndPassword(auth, email, password);
-  const uid = cred.user.uid;
-  const facilityId = uid; // 設立者のuidをそのまま施設IDにする(不正な施設乗っ取りを防ぐ設計。firestore.rules参照)
-  const code = genFacilityCode();
+  authFlowInProgress = true;
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    const uid = cred.user.uid;
+    const facilityId = uid; // 設立者のuidをそのまま施設IDにする(不正な施設乗っ取りを防ぐ設計。firestore.rules参照)
+    const code = genFacilityCode();
 
-  await setDoc(doc(db, "facilities", facilityId), {
-    name: facilityName, code, createdAt: serverTimestamp()
-  });
-  await setDoc(doc(db, "facilityCodes", code), { facilityId });
-  await setDoc(doc(db, "users", uid), {
-    facilityId, name: adminName, email, role: "admin", createdAt: serverTimestamp()
-  });
+    await setDoc(doc(db, "facilities", facilityId), {
+      name: facilityName, code, createdAt: serverTimestamp()
+    });
+    await setDoc(doc(db, "facilityCodes", code), { facilityId });
+    await setDoc(doc(db, "users", uid), {
+      facilityId, name: adminName, email, role: "admin", createdAt: serverTimestamp()
+    });
 
-  return { facilityId, code };
+    return { facilityId, code };
+  } finally {
+    authFlowInProgress = false;
+  }
 }
 
 async function loginWithFacility(code, email, password) {
-  const cred = await signInWithEmailAndPassword(auth, email, password);
-  const uid = cred.user.uid;
-  const userSnap = await getDoc(doc(db, "users", uid));
-  if (!userSnap.exists()) {
-    await signOut(auth);
-    throw new Error("アカウント情報が見つかりません。管理者に確認してください。");
-  }
-  const userData = userSnap.data();
-  if (userData.role === "disabled") {
-    await signOut(auth);
-    throw new Error("このアカウントは無効化されています。");
-  }
+  authFlowInProgress = true;
+  try {
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    const uid = cred.user.uid;
+    const userSnap = await getDoc(doc(db, "users", uid));
+    if (!userSnap.exists()) {
+      await signOut(auth);
+      throw new Error("アカウント情報が見つかりません。管理者に確認してください。");
+    }
+    const userData = userSnap.data();
+    if (userData.role === "disabled") {
+      await signOut(auth);
+      throw new Error("このアカウントは無効化されています。");
+    }
 
-  const codeSnap = await getDoc(doc(db, "facilityCodes", code.trim().toUpperCase()));
-  if (!codeSnap.exists() || codeSnap.data().facilityId !== userData.facilityId) {
-    await signOut(auth);
-    throw new Error("施設コードが正しくありません。");
+    const codeSnap = await getDoc(doc(db, "facilityCodes", code.trim().toUpperCase()));
+    if (!codeSnap.exists() || codeSnap.data().facilityId !== userData.facilityId) {
+      await signOut(auth);
+      throw new Error("施設コードが正しくありません。");
+    }
+    return userData;
+  } finally {
+    authFlowInProgress = false;
   }
-  return userData;
 }
 
 async function loadFacility(facilityId) {
@@ -301,7 +315,8 @@ function initAuthUI() {
     btn.disabled = true; btn.textContent = "ログイン中...";
     try {
       await loginWithFacility(code, email, pass);
-      // onAuthStateChanged 側で画面遷移する
+      // 登録処理中はonAuthStateChangedの介入を止めているため、完了後に手動で呼ぶ
+      await afterSignedIn(auth.currentUser);
     } catch (err) {
       showToast(err.message || "ログインに失敗しました", true);
     } finally {
@@ -320,6 +335,8 @@ function initAuthUI() {
     btn.disabled = true; btn.textContent = "登録中...";
     try {
       const { code } = await registerFacility(facilityName, adminName, email, pass);
+      // 登録処理中はonAuthStateChangedの介入を止めているため、完了後に手動で呼ぶ
+      await afterSignedIn(auth.currentUser);
       showToast(`施設を登録しました。施設コード: ${code}（職員に共有してください）`);
     } catch (err) {
       showToast(err.message || "登録に失敗しました", true);
@@ -341,12 +358,13 @@ function initAuthUI() {
   });
 }
 
-onAuthStateChanged(auth, async (fbUser) => {
-  if (!fbUser) {
-    state.user = null; state.facility = null;
-    showScreen("screenLogin");
-    return;
-  }
+/**
+ * サインイン済みユーザーの画面初期化。onAuthStateChangedから通常は自動で呼ばれるが、
+ * registerFacility/loginWithFacility実行中はauthFlowInProgressで介入を止めているため、
+ * それらの処理が完了した直後にも明示的に呼び出す（2箇所から呼ばれる想定）。
+ */
+async function afterSignedIn(fbUser) {
+  if (!fbUser) return;
   try {
     const userSnap = await getDoc(doc(db, "users", fbUser.uid));
     if (!userSnap.exists()) { await signOut(auth); return; }
@@ -369,6 +387,16 @@ onAuthStateChanged(auth, async (fbUser) => {
     console.error(err);
     showToast("ログイン情報の取得に失敗しました", true);
   }
+}
+
+onAuthStateChanged(auth, async (fbUser) => {
+  if (authFlowInProgress) return; // registerFacility/loginWithFacility側で完了後に手動で呼ぶ
+  if (!fbUser) {
+    state.user = null; state.facility = null;
+    showScreen("screenLogin");
+    return;
+  }
+  await afterSignedIn(fbUser);
 });
 
 function roleLabel(role) {
