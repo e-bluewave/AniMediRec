@@ -137,6 +137,22 @@
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     .toast.error { background: #EF4444; }
 
+    /* confirm()/prompt() の代替となる自前ダイアログ */
+    .dialog-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: none; align-items: center; justify-content: center; z-index: 400; padding: 20px;
+    }
+    .dialog-overlay.active { display: flex; }
+    .dialog-box {
+      background: var(--bg-main); border-radius: 20px; padding: 22px;
+      max-width: 380px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.25); outline: none;
+    }
+    .dialog-title { font-weight: bold; font-size: 1.05rem; margin-bottom: 10px; }
+    .dialog-message { font-size: .88rem; color: var(--text-main); white-space: pre-line; line-height: 1.6; }
+    .dialog-input { margin-top: 12px; }
+    .dialog-actions { display: flex; gap: 10px; margin-top: 18px; }
+    .dialog-actions button { flex: 1; width: auto; }
+
     #printArea { display: none; }
     @media print {
       body * { visibility: hidden; }
@@ -585,6 +601,19 @@
 
   <!-- 印刷用カルテ(通常時は非表示。印刷時のみ表示される) -->
   <div id="printArea"></div>
+
+  <!-- confirm()/prompt()の代替となる自前ダイアログ -->
+  <div class="dialog-overlay" id="dialogOverlay">
+    <div class="dialog-box" id="dialogBox" tabindex="-1">
+      <div class="dialog-title" id="dialogTitle">確認</div>
+      <div class="dialog-message" id="dialogMessage"></div>
+      <input type="text" class="input-field dialog-input" id="dialogInput" style="display:none;">
+      <div class="dialog-actions">
+        <button class="btn-back" id="dialogCancelBtn">キャンセル</button>
+        <button class="btn-primary" id="dialogOkBtn">OK</button>
+      </div>
+    </div>
+  </div>
 
   <div class="toast" id="toast"></div>
 

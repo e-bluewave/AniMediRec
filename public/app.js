@@ -63,6 +63,21 @@ function formatDateJp(dateStr) {
   return (dateStr || "").replace(/-/g, "/");
 }
 
+/**
+ * 体重記録を「日付→(同日なら)作成順」で昇順ソートする。
+ * dateはYYYY-MM-DD(時刻を持たない)のため、同じ日に複数回記録すると日付だけでは
+ * 順序を決められず、Firestoreから返る順(≒作成順とは限らない)のままになってしまう
+ * 不具合が実機で見つかった。createdAt(serverTimestamp)を同日内のタイブレークに使う。
+ */
+function sortWeightsAsc(weights) {
+  return [...weights].sort((x, y) => {
+    if (x.date !== y.date) return x.date < y.date ? -1 : 1;
+    const xMs = x.createdAt && typeof x.createdAt.toMillis === "function" ? x.createdAt.toMillis() : 0;
+    const yMs = y.createdAt && typeof y.createdAt.toMillis === "function" ? y.createdAt.toMillis() : 0;
+    return xMs - yMs;
+  });
+}
+
 /** グラム(数値) <-> 表示文字列。個体ごとの単位設定(kg/g)に従って整形する */
 function formatWeight(grams, unit) {
   if (grams === null || grams === undefined || isNaN(grams)) return "未登録";
@@ -164,6 +179,68 @@ function showToast(msg, isError = false) {
   clearTimeout(el._t);
   el._t = setTimeout(() => { el.className = "toast"; }, 3400);
 }
+
+// ============================================================
+// 自前ダイアログ（confirm()/prompt()の代替。CLAUDE.mdルール9）
+// ============================================================
+
+let dialogResolver = null;
+
+function openDialog({ title, message, withInput = false, inputValue = "", placeholder = "", okLabel = "OK", danger = false }) {
+  return new Promise((resolve) => {
+    dialogResolver = resolve;
+    document.getElementById("dialogTitle").textContent = title;
+    document.getElementById("dialogMessage").textContent = message;
+    const input = document.getElementById("dialogInput");
+    input.style.display = withInput ? "block" : "none";
+    input.value = inputValue;
+    input.placeholder = placeholder;
+    const okBtn = document.getElementById("dialogOkBtn");
+    okBtn.textContent = okLabel;
+    okBtn.className = danger ? "btn-danger" : "btn-primary";
+    document.getElementById("dialogOverlay").classList.add("active");
+    // 破壊的な操作をEnterキーで誤って確定させないよう、OKボタンではなくダイアログ本体
+    // (input無しの場合)かinput自体(input有りの場合)にフォーカスする
+    if (withInput) setTimeout(() => input.focus(), 50);
+    else document.getElementById("dialogBox").focus();
+  });
+}
+
+function closeDialog(result) {
+  document.getElementById("dialogOverlay").classList.remove("active");
+  if (dialogResolver) { dialogResolver(result); dialogResolver = null; }
+}
+
+/** ブラウザ標準confirm()の代替。Promise<boolean>を返す */
+function customConfirm(message, opts = {}) {
+  return openDialog({ title: "確認", ...opts, message, withInput: false }).then(r => r === true);
+}
+
+/** ブラウザ標準prompt()の代替。OK時は入力文字列、キャンセル時はnullを返す */
+function customPrompt(message, opts = {}) {
+  return openDialog({ title: "入力してください", ...opts, message, withInput: true });
+}
+
+document.getElementById("dialogCancelBtn").addEventListener("click", () => {
+  const withInput = document.getElementById("dialogInput").style.display !== "none";
+  closeDialog(withInput ? null : false);
+});
+document.getElementById("dialogOkBtn").addEventListener("click", () => {
+  const input = document.getElementById("dialogInput");
+  const withInput = input.style.display !== "none";
+  closeDialog(withInput ? input.value : true);
+});
+document.getElementById("dialogInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") document.getElementById("dialogOkBtn").click();
+});
+document.getElementById("dialogOverlay").addEventListener("click", (e) => {
+  if (e.target.id === "dialogOverlay") document.getElementById("dialogCancelBtn").click();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && document.getElementById("dialogOverlay").classList.contains("active")) {
+    document.getElementById("dialogCancelBtn").click();
+  }
+});
 
 // ============================================================
 // 状態管理
@@ -659,7 +736,10 @@ async function saveAnimalForm() {
 async function confirmDeleteAnimal() {
   const a = state.animals.find(x => x.id === state.currentAnimalId) ||
             state.trashedAnimals.find(x => x.id === state.currentAnimalId);
-  const input = prompt(`【削除の確認】\n「${a.name}」をゴミ箱に移動します。\n30日以内であれば復元できます。\n\n実行する場合は個体名「${a.name}」を入力してください。`);
+  const input = await customPrompt(
+    `「${a.name}」をゴミ箱に移動します。\n30日以内であれば復元できます。\n\n実行する場合は個体名「${a.name}」を入力してください。`,
+    { title: "削除の確認", placeholder: a.name, okLabel: "削除する", danger: true }
+  );
   if (input === a.name) {
     await updateDoc(doc(db, "facilities", state.user.facilityId, "animals", a.id), {
       deletedAt: serverTimestamp(), updatedBy: state.user.uid
@@ -720,8 +800,7 @@ function subscribeWeights(animalId) {
     where("deletedAt", "==", null)
   );
   unsubWeights = onSnapshot(q, (snap) => {
-    state.weights = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      .sort((x, y) => x.date.localeCompare(y.date)); // 古い順（⑥: グラフ描画用）
+    state.weights = sortWeightsAsc(snap.docs.map(d => ({ id: d.id, ...d.data() }))); // 古い順（⑥: グラフ描画用）
     if (document.getElementById("weightViewArea").style.display !== "none") renderWeightChart();
   }, (err) => { console.error(err); showToast("体重記録の取得に失敗しました", true); });
 }
@@ -984,7 +1063,7 @@ async function saveLogRecord() {
 }
 
 async function deleteLogRecord(logId) {
-  if (!confirm("この記録をゴミ箱に移動します。よろしいですか？")) return;
+  if (!(await customConfirm("この記録をゴミ箱に移動します。よろしいですか？", { title: "記録の削除", okLabel: "削除する", danger: true }))) return;
   await updateDoc(doc(db, "facilities", state.user.facilityId, "animals", state.currentAnimalId, "logs", logId), {
     deletedAt: serverTimestamp()
   });
@@ -1013,18 +1092,21 @@ async function editWeightRecord(id) {
   const item = state.weights.find(w => w.id === id);
   const a = state.animals.find(x => x.id === state.currentAnimalId);
   const unit = (a && a.weightUnit) || "kg";
-  const newVal = prompt(`【体重記録の修正】\n${item.date} の体重を入力してください (${unit}):`, gramsToInputValue(item.grams, unit));
+  const newVal = await customPrompt(
+    `${item.date} の体重を入力してください (${unit}):`,
+    { title: "体重記録の修正", inputValue: gramsToInputValue(item.grams, unit), okLabel: "保存" }
+  );
   if (newVal === null) return;
   const grams = toGrams(newVal, unit);
   if (grams === null || grams <= 0) { showToast("正しい数値を入力してください", true); return; }
   await updateDoc(doc(db, "facilities", state.user.facilityId, "animals", state.currentAnimalId, "weights", id), { grams });
-  const latest = [...state.weights].sort((x, y) => x.date.localeCompare(y.date)).pop();
+  const latest = sortWeightsAsc(state.weights).pop();
   if (latest && latest.id === id) await updateDoc(doc(db, "facilities", state.user.facilityId, "animals", state.currentAnimalId), { latestWeightGrams: grams });
 }
 
 async function deleteWeightRecord(id) {
   const item = state.weights.find(w => w.id === id);
-  if (!confirm(`${item.date} の記録を削除しますか？`)) return;
+  if (!(await customConfirm(`${item.date} の記録を削除しますか？`, { title: "体重記録の削除", okLabel: "削除する", danger: true }))) return;
   await updateDoc(doc(db, "facilities", state.user.facilityId, "animals", state.currentAnimalId, "weights", id), { deletedAt: serverTimestamp() });
 }
 
@@ -1157,7 +1239,7 @@ document.addEventListener("click", async (e) => {
   }
   const purge = e.target.closest("[data-purge]");
   if (purge) {
-    if (!confirm("完全に削除します。この操作は取り消せません。よろしいですか？")) return;
+    if (!(await customConfirm("完全に削除します。この操作は取り消せません。よろしいですか？", { title: "完全削除の確認", okLabel: "完全に削除する", danger: true }))) return;
     await deleteDoc(doc(db, "facilities", state.user.facilityId, "animals", purge.dataset.purge));
     showToast("完全に削除しました");
   }
@@ -1249,7 +1331,7 @@ function exportCurrentAnimalJSON() {
 
 /** 施設全体のバックアップ。全記録を読むためオンデマンド実行のみ(admin限定)。 */
 async function exportFacilityBackupJSON() {
-  if (!confirm("施設内の全データを読み込みます（無料枠の読み取り回数を消費します）。実行しますか？")) return;
+  if (!(await customConfirm("施設内の全データを読み込みます（無料枠の読み取り回数を消費します）。実行しますか？", { title: "全データバックアップ", okLabel: "実行する" }))) return;
   showToast("バックアップを作成中...");
   const animalsSnap = await getDocs(collection(db, "facilities", state.user.facilityId, "animals"));
   const animals = [];

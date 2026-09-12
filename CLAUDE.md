@@ -92,7 +92,7 @@ facilities/{facilityId}/animals/{id}
 | 体重 | `subscribeWeights` `addWeightRecord` `editWeightRecord` `deleteWeightRecord` `renderWeightChart` |
 | ゴミ箱・職員管理 | `openTrashScreen` `renderTrash` `openStaffScreen` `renderStaffList` |
 | エクスポート・印刷 | `exportAnimalListCSV` `exportCurrentAnimalCSV` `exportCurrentAnimalJSON` `exportFacilityBackupJSON` `printAnimalChart` |
-| 共通ユーティリティ | `esc`（HTMLエスケープ。innerHTML埋め込み時は必ず通す）`compressImage` `uploadPhoto` `formatWeight`/`toGrams` `toCSV`/`csvCell` `showToast` |
+| 共通ユーティリティ | `esc`（HTMLエスケープ。innerHTML埋め込み時は必ず通す）`compressImage` `uploadPhoto` `formatWeight`/`toGrams` `sortWeightsAsc`（体重を日付→同日は作成順でソート）`toCSV`/`csvCell` `showToast` `customConfirm`/`customPrompt`（confirm/promptの代替。ルール9） |
 
 画面のonclick属性から呼ぶ関数は、ファイル末尾の`Object.assign(window, {...})`に
 **必ず追加**すること（漏れるとブラウザ上で `xxx is not defined` になる）。
@@ -144,9 +144,12 @@ facilities/{facilityId}/animals/{id}
 - **一覧・検索・要観察バッジは「施設全体を毎回読み直す」実装にしない**（無料枠の
   読み取り回数を守るため）。個体内検索は「開いている個体の記録」のみを対象にする
   （施設全体の記録横断検索ではない。旧プロトタイプからの意図的な仕様変更）。
-- **ルール9違反（`confirm()`/`prompt()`使用）は一括修正せず、該当関数に別件で
-  触るタイミングで個別に自前モーダルへ置き換える**（2026-09-11 ユーザー決定。
-  `docs/backlog.md`「既知の負債」参照）。
+- **ルール9違反（`confirm()`/`prompt()`使用）は解消済み**（2026-09-12）。
+  当初は「該当関数に触るタイミングで個別に置き換える」方針だったが、ユーザーから
+  一括対応の指示があり、`public/app.js`の全6箇所（個体削除・記録削除・体重の
+  編集/削除・完全削除・全データバックアップの確認）を`customConfirm()`/
+  `customPrompt()`（自前ダイアログ、`#dialogOverlay`）に置き換えた。
+  今後ネイティブダイアログを新たに使わないこと。
 - **Cloud StorageはBlazeプラン（カード登録）で運用する**（2026-09-12 ユーザー選定 A案）。
   Google側の仕様変更により、新規プロジェクトはCloud Storageを使う場合Sparkプランのままでは
   有効化できずBlazeへのアップグレードが必須になったため。Authentication・Firestoreは
@@ -284,11 +287,9 @@ These rules apply to **every** change. They override convenience.
    `alert()` / `confirm()` / `prompt()` などブラウザ標準ダイアログは見た目・挙動を
    制御できないため使用禁止とし、代わりにカスタム実装（確認モーダル・入力モーダル・
    トースト通知等）を用意して統一する。
-   - **⚠️現状の負債**: `public/app.js`の`confirmDeleteAnimal`/`deleteLogRecord`/
-     `editWeightRecord`/`deleteWeightRecord`が`confirm()`/`prompt()`を使用中で、
-     このルールに未対応。`docs/backlog.md`「既知の負債」に記載済み。**この関数群に
-     触る際は、ついでに自前モーダルへの置き換えも検討し、ユーザーに提案すること**
-     （ルール10と連動）。
+   - **対応済み**（2026-09-12）: `customConfirm()`/`customPrompt()`（`#dialogOverlay`）
+     を実装し、全箇所を置き換え済み。新しい確認・入力ダイアログが必要になったら
+     これらを使う（ネイティブダイアログへ逆戻りしない）。
 
 10. **機能実装中、他の未着手候補と同時対応できそうな場合は都度提案する。**
     ある機能を実装している最中に、バックログの他の候補と実装基盤（共通ロジック・UI部品等）を
@@ -432,6 +433,17 @@ Firebase側の実際の動作は、2026-09-12にユーザーの実機Firebase環
 
 ## よくある落とし穴・対処パターン（知見）
 
+- **「日付だけ」のフィールドで並び替えると、同じ日に複数回記録した時の順序が
+  不定になる**: 体重記録(`weights`)は`date`（`YYYY-MM-DD`、時刻を持たない）だけを
+  ソート基準にしていたため、同じ日に複数回記録すると`localeCompare`が同値を返し、
+  Firestoreから返ってきたたまたまの順（≒作成順とは限らない）のまま表示される
+  不具合を実機で踏んだ。記録(`logs`)側は`recordedAt`（日時までのISO文字列）を
+  唯一の基準にする設計が既にあり、それと矛盾する作りになっていた。対策：
+  `date`が同じ場合は`createdAt`（`serverTimestamp()`）をタイブレークに使う
+  （`sortWeightsAsc()`）。画面・入力欄は変えず内部の並び替えだけを直す最小修正
+  （2026-09-12 ユーザー選定）。より厳密に直すなら`logs`同様に体重にも記録時刻を
+  持たせる案があるが、体重は1日1〜2回程度が通常のため見送り、必要になれば
+  改めて仕様検討する。
 - **動的に`innerHTML`で再生成する要素に、ユーザー入力中の値を持たせてはいけない**:
   `renderModalFormContent()`が状態判定(〇/△/✕)切り替えのたびに`#modalFormContent`の
   innerHTMLを再構築する設計だったため、日時入力欄をその中に置いていると再描画で

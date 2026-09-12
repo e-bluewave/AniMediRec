@@ -69,6 +69,11 @@
 - `animals`ドキュメントの`latestWeightGrams`は一覧表示用の最新値キャッシュ。
   体重を追加・編集すると都度更新する。
 - 折れ線グラフは`weights`サブコレクションを日付昇順に並べてCanvasで描画（`renderWeightChart()`）。
+  並び順は`date`（日付のみ）→同じ日付なら`createdAt`（作成時刻）の順でソートする
+  （`sortWeightsAsc()`）。体重は時刻を持たないため、同日に複数回記録した場合の
+  順序保証は「作成順」であり、実際に測定した時刻の前後関係ではない点に注意
+  （必要になれば記録時刻を持たせる仕様に拡張する。docs/backlog.md参照は不要、
+  CLAUDE.mdの落とし穴参照）。
 
 ## 削除・ゴミ箱（⑤）
 
@@ -78,6 +83,10 @@
   docs/backlog.md参照）。「復元」はeditor(admin/staff)可、「完全削除」はadmin限定。
 - 個体の`deletedAt`変更（削除・復元）は`firestore.rules`側でもadmin限定に強制している
   （`diff().affectedKeys()`でdeletedAtフィールドの変更だけを判別）。
+- 削除・完全削除・全データバックアップ等の確認は、ブラウザ標準の`confirm()`/
+  `prompt()`ではなく**自前ダイアログ**（`customConfirm()`/`customPrompt()`、
+  `#dialogOverlay`）を使う（CLAUDE.mdルール9）。個体削除は個体名を入力させる
+  `customPrompt()`、それ以外は`customConfirm()`。
 
 ## エクスポート（⑧）
 
