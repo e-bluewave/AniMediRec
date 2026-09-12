@@ -105,14 +105,41 @@ export const firebaseConfig = {
 
 Firebase CLI（コマンドラインツール）を使います。パソコンに Node.js がインストールされていれば実行できます。
 
+> **すでにコンソールから直接貼り付けて公開済みの場合、この手順7は不要です。** その場合は
+> 手順8（動作確認）に進んでください。
+>
+> **注意（Windows）**: 以下のコマンドは1行につき1つずつ実行してください。行末の`#`から
+> 始まるコメントは Mac/Linux のターミナル用の説明で、**Windowsのコマンドプロンプトでは
+> `#`以降も含めてコマンドとして扱われエラーになります。** コピーする時はコマンド本体
+> （`#`より前の部分）だけを使ってください。
+
+初回のみ、Firebase CLIをインストールしてログインします。
+
 ```bash
-npm install -g firebase-tools     # 初回のみ
-firebase login                    # ブラウザが開くのでGoogleアカウントでログイン
+npm install -g firebase-tools
+```
 
-cd animedirec                     # このリポジトリのルートフォルダで実行
-cp .firebaserc.example .firebaserc
-# .firebaserc を開き、default の値を手順1で作成したプロジェクトIDに書き換える
+```bash
+firebase login
+```
 
+（ブラウザが自動で開くので、Googleアカウントでログインしてください）
+
+次に、このリポジトリのルートフォルダに移動し、`.firebaserc` を作成します。
+
+```bash
+cd animedirec
+```
+
+- **Mac/Linux**: `cp .firebaserc.example .firebaserc`
+- **Windows（コマンドプロンプト）**: `copy .firebaserc.example .firebaserc`
+
+作成した `.firebaserc` をテキストエディタで開き、`default` の値を手順1で作成した
+プロジェクトID（例: `animedirec`）に書き換えて保存してください。
+
+最後にルールをデプロイします。
+
+```bash
 firebase deploy --only firestore:rules,storage:rules
 ```
 
@@ -128,8 +155,12 @@ firebase deploy --only firestore:rules,storage:rules
 ```bash
 cd animedirec/public
 python3 -m http.server 8000
-# ブラウザで http://localhost:8000 を開く
 ```
+
+> **Windowsで `python3` が見つからない（'python3' は認識されていません等）場合**:
+> 代わりに `python -m http.server 8000` または `py -m http.server 8000` を試してください。
+
+起動したら、ブラウザで `http://localhost:8000` を開いてください。
 
 初回は「施設を新規登録」から施設・管理者アカウントを作成してください。
 登録後に表示される「施設コード」を、以降のログイン・職員招待に使います。
