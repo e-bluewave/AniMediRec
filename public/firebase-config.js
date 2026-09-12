@@ -10,10 +10,10 @@
 // ============================================================
 
 export const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCtbnnzxv5Kb_pNN3hh1lHSoJCxMGpo6n4",
+  authDomain: "animedirec.firebaseapp.com",
+  projectId: "animedirec",
+  storageBucket: "animedirec.firebasestorage.app",
+  messagingSenderId: "805016587704",
+  appId: "1:805016587704:web:1ce117e8d395ea489c934d"
 };
