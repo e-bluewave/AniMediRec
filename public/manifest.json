@@ -1,6 +1,6 @@
 {
-  "name": "AniMediRec（動物健康管理アプリ）",
-  "short_name": "AniMediRec",
+  "name": "動物健康管理",
+  "short_name": "動物健康管理",
   "description": "保護施設・動物病院向けの個体別健康記録アプリ",
   "start_url": ".",
   "scope": ".",
