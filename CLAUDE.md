@@ -441,6 +441,22 @@ Firebase側の実際の動作（ログイン・Firestore読み書き・Storage�
   `memo`に`"`が入ると属性が途中で切れ、それ以降の属性・イベントハンドラが壊れる。
   対策：`innerHTML`へ差し込む前に必ず`esc()`を通す（値だけでなく、`data-*`属性に
   差し込む値も同様に注意）。
+- **`el.style.display = ""` は、CSSクラスで`display: none`が指定されている要素を
+  表示状態には戻せない**: `.editor-only, .admin-only { display: none; }`という
+  クラスで隠しておき、ログイン時に`el.style.display = (role条件) ? "" : "none"`で
+  出し分けようとしたところ、adminでログインしても「個体を登録する」ボタン等が
+  一切表示されない不具合を実機で踏んだ。`style.display=""`は「インライン指定を
+  外す」だけで、外した結果はCSSのカスケードに戻るため、`.editor-only`クラスの
+  `display:none`がそのまま効いてしまう。加えて、タイムライン・体重履歴・ゴミ箱の
+  編集/削除ボタンのように**画面遷移のたびにinnerHTMLで動的に生成される要素**は、
+  ログイン時に一度だけ実行される`querySelectorAll(".editor-only")`のループの
+  対象にそもそも含まれず、常に非表示のままになる、というより根の深い問題もあった。
+  対策：①CSS側の`display:none`指定はやめる ②静的な要素は`el.hidden = 真偽値`
+  （`hidden`属性。ブラウザ標準の`[hidden]{display:none}`が効くため、
+  要素本来の`display`値に関わらず確実に隠せる）で出し分ける ③動的に生成する要素は
+  `canEdit()`/`isAdminRole()`のようなヘルパー関数を用意し、**描画する文字列を
+  組み立てる時点で権限に応じてボタンのHTML自体を含めるかどうかを判定する**
+  （生成後にDOM側で後から隠そうとしない）。
 - **Firestoreのセキュリティルールで「フィールド単位の権限」を作る時は`diff().affectedKeys()`
   を使う**: 「個体の削除(`deletedAt`変更)だけはadmin限定、他の編集はstaffも可」を
   実現するのに、`update`ルールを`isAdmin() || (isEditor() && !diff(...).affectedKeys().hasAny(['deletedAt']))`

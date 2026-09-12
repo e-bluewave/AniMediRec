@@ -26,7 +26,8 @@
     }
     .screen { display: none; }
     .screen.active { display: block; }
-    .editor-only, .admin-only { display: none; }
+    /* editor-only/admin-only の表示制御はCSSではなくJS側で hidden 属性を使って行う
+       (style.display="" はこのクラスのdisplay:noneを上書きできないため) */
 
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .header-title { font-size: 1.2rem; font-weight: bold; }

@@ -375,11 +375,15 @@ async function afterSignedIn(fbUser) {
     document.getElementById("facilityNameLabel").textContent = state.facility.name;
     document.getElementById("userNameLabel").textContent = `${u.name}（${roleLabel(u.role)}）`;
     document.getElementById("staffNavBtn").style.display = (u.role === "admin") ? "inline-block" : "none";
+    // hidden属性を使う(style.display="" はCSSクラスのdisplay:noneを上書きできないため)。
+    // ただしこれは今すでにDOMにある「静的な」editor-only/admin-only要素にのみ効く。
+    // タイムライン等で動的に生成されるボタン類はcanEdit()/isAdminRole()を使って
+    // 描画時に含めるかどうかを判定している(renderLogItem等を参照)。
     document.querySelectorAll(".editor-only").forEach(el => {
-      el.style.display = (u.role === "admin" || u.role === "staff") ? "" : "none";
+      el.hidden = !canEdit();
     });
     document.querySelectorAll(".admin-only").forEach(el => {
-      el.style.display = (u.role === "admin") ? "" : "none";
+      el.hidden = !isAdminRole();
     });
 
     showScreen("screenHome");
@@ -401,6 +405,16 @@ onAuthStateChanged(auth, async (fbUser) => {
 
 function roleLabel(role) {
   return { admin: "管理者", staff: "職員", viewer: "閲覧のみ", disabled: "無効" }[role] || role;
+}
+
+/** admin/staffなら記録・個体の追加編集が可能（動的に生成するボタンの出し分けに使う） */
+function canEdit() {
+  return !!state.user && (state.user.role === "admin" || state.user.role === "staff");
+}
+
+/** adminのみ可能な操作（個体の完全削除など） */
+function isAdminRole() {
+  return !!state.user && state.user.role === "admin";
 }
 
 // ============================================================
@@ -771,12 +785,14 @@ function renderLogItem(log, showDate) {
   const timeStr = log.recordedAt.slice(11, 16);
   const dateStr = log.recordedAt.slice(0, 10).replace(/-/g, "/");
   const photoHtml = log.photoURL ? `<img src="${esc(log.photoURL)}" class="tl-img" data-photo="${esc(log.photoURL)}">` : "";
+  const actionsHtml = canEdit() ? `
+      <div class="tl-actions">
+        <button class="tl-action-btn" data-edit-log="${log.id}">編集</button>
+        <button class="tl-action-btn delete" data-del-log="${log.id}">削除</button>
+      </div>` : "";
   return `
     <div class="tl-item">
-      <div class="tl-actions">
-        <button class="tl-action-btn editor-only" data-edit-log="${log.id}">編集</button>
-        <button class="tl-action-btn delete editor-only" data-del-log="${log.id}">削除</button>
-      </div>
+      ${actionsHtml}
       <div class="tl-time-box">
         ${showDate ? `<div class="tl-date">${dateStr}</div>` : ""}
         <div>${timeStr} (${esc(log.timezone)})</div>
@@ -1032,8 +1048,9 @@ function renderWeightChart() {
           <span>📅 ${esc(h.date)}</span>
           <div style="display:flex;align-items:center;gap:10px;">
             <span style="font-weight:bold;color:var(--accent-green);">${esc(formatWeight(h.grams, unit))}</span>
-            <button class="tl-action-btn editor-only" data-edit-weight="${h.id}">編集</button>
-            <button class="tl-action-btn delete editor-only" data-del-weight="${h.id}">削除</button>
+            ${canEdit() ? `
+            <button class="tl-action-btn" data-edit-weight="${h.id}">編集</button>
+            <button class="tl-action-btn delete" data-del-weight="${h.id}">削除</button>` : ""}
           </div>
         </div>`).join("");
 
@@ -1126,8 +1143,8 @@ function renderTrash() {
         </div>
       </div>
       <div style="display:flex;gap:6px;">
-        <button class="tl-action-btn editor-only" data-restore="${a.id}">復元</button>
-        <button class="tl-action-btn delete admin-only" data-purge="${a.id}">完全削除</button>
+        ${canEdit() ? `<button class="tl-action-btn" data-restore="${a.id}">復元</button>` : ""}
+        ${isAdminRole() ? `<button class="tl-action-btn delete" data-purge="${a.id}">完全削除</button>` : ""}
       </div>
     </div>`).join("");
 }
