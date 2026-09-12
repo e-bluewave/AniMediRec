@@ -187,6 +187,9 @@ function showToast(msg, isError = false) {
 let dialogResolver = null;
 
 function openDialog({ title, message, withInput = false, inputValue = "", placeholder = "", okLabel = "OK", danger = false }) {
+  // 既に別のダイアログ表示中なら無視する(dialogResolverの上書きによる前のPromiseの
+  // 迷子防止。ボタンの多重クリック等でごく稀に同時発火した場合の保険)
+  if (dialogResolver) return Promise.resolve(null);
   return new Promise((resolve) => {
     dialogResolver = resolve;
     document.getElementById("dialogTitle").textContent = title;
