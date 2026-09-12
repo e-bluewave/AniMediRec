@@ -122,7 +122,18 @@ facilities/{facilityId}/animals/{id}
 このファイルとルールファイルの記述が食い違ったら、ルールファイルを正として
 このファイルを更新すること。
 
+## アイコン・PWA表示
+
+- `public/manifest.json` でアプリ名・テーマカラー（`#38C6A3`）・背景色（`#FAF6EE`）・
+  アイコンを定義。ブラウザタブ（`favicon.ico`／`icons/favicon-{16,32}.png`）、
+  iOSの「ホーム画面に追加」（`icons/apple-touch-icon.png`、180px）、
+  Android等のPWAインストール（`icons/icon-{192,512}.png`）に対応。
+- アイコン画像はユーザー提供のロゴから`Pillow`で各サイズを生成したもの
+  （元画像は1254×1254px）。ロゴを差し替える場合は同じサイズ構成
+  （16/32/48/180/192/512px）で作り直し、同じファイル名で上書きする。
+- Firebase Hostingの`rewrites`（SPA用キャッチオール）より静的ファイルの配信が
+  優先されるため、`firebase.json`側の設定変更は不要。
+
 ## 未実装・既知の制約
 
-`docs/backlog.md` を参照。特に **ネイティブダイアログ(`confirm()`/`prompt()`)を
-複数箇所で使用中** — CLAUDE.mdのMANDATORYルール9（自前実装を使う）に未対応。
+`docs/backlog.md` を参照。
