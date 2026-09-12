@@ -1334,7 +1334,7 @@ function exportCurrentAnimalJSON() {
 
 /** 施設全体のバックアップ。全記録を読むためオンデマンド実行のみ(admin限定)。 */
 async function exportFacilityBackupJSON() {
-  if (!(await customConfirm("施設内の全データを読み込みます（無料枠の読み取り回数を消費します）。実行しますか？", { title: "全データバックアップ", okLabel: "実行する" }))) return;
+  if (!(await customConfirm("施設内の全データを読み込みます。実行しますか？", { title: "全データバックアップ", okLabel: "実行する" }))) return;
   showToast("バックアップを作成中...");
   const animalsSnap = await getDocs(collection(db, "facilities", state.user.facilityId, "animals"));
   const animals = [];
