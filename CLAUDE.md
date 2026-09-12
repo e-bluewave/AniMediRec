@@ -109,6 +109,7 @@ facilities/{facilityId}/animals/{id}
 | `docs/roadmap.md` | フェーズ計画と進捗 | 大きな方針を決める時 |
 | `docs/SPEC-v2.md` | 当初の改善8項目の仕様検討（提案時点の記録。歴史的資料） | 「なぜこの設計になったか」の背景を知りたい時 |
 | `docs/SETUP-FIREBASE.md` | Firebaseプロジェクトのセットアップ手順（運用ドキュメント） | Firebase環境の構築・デプロイ作業をする時 |
+| `docs/MIGRATION-GUIDE.md` | 新しいGitHubアカウント・Firebaseプロジェクトへの引っ越し手順（学生向け・完全ゼロから） | 別アカウントへの移行作業をする時／upsert対象外（一度きりの手順書） |
 
 **★探し方**：`grep -n "キーワード" docs/*.md` で当たりを付け、その節だけ読む（docs全体を読み込まない）。
 
