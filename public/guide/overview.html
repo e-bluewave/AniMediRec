@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>動物健康管理アプリのつくりかた</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --paper:#FBF7EE;
+    --surface:#FFFFFF;
+    --surface-soft:#F3ECDD;
+    --ink:#3D372F;
+    --ink-2:#6B6255;
+    --ink-3:#9B927F;
+    --line:#E6DDC8;
+    --accent:#1E9E82;
+    --accent-soft:#DEF3EC;
+    --accent-ink:#0F6B57;
+    --warn:#C97A2E;
+    --warn-soft:#FBEBD9;
+    --bad:#C1495A;
+    --bad-soft:#FBE7E9;
+    --shadow:0 1px 2px rgba(61,55,47,.06),0 6px 18px rgba(61,55,47,.05);
+    --f-display:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+    --f-body:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+    --f-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#1B1F1C; --surface:#222824; --surface-soft:#2A302A;
+      --ink:#EDE7D8; --ink-2:#B7AF9C; --ink-3:#857D6C; --line:#3A413A;
+      --accent:#4FCDAE; --accent-soft:#1E332C; --accent-ink:#8FE0C9;
+      --warn:#E3A15C; --warn-soft:#33291A;
+      --bad:#E38A93; --bad-soft:#33201F;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#1B1F1C; --surface:#222824; --surface-soft:#2A302A;
+    --ink:#EDE7D8; --ink-2:#B7AF9C; --ink-3:#857D6C; --line:#3A413A;
+    --accent:#4FCDAE; --accent-soft:#1E332C; --accent-ink:#8FE0C9;
+    --warn:#E3A15C; --warn-soft:#33291A;
+    --bad:#E38A93; --bad-soft:#33201F;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--f-body); font-size:16px; line-height:1.85;
+    padding-inline:20px; padding-block:0 80px;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent-ink)}
+  :focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+  .wrap{max-width:760px;margin:0 auto}
+
+  /* ---- header ---- */
+  header{padding-block:52px 8px}
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--f-display); font-weight:700; font-size:.78rem;
+    letter-spacing:.06em; color:var(--accent-ink); background:var(--accent-soft);
+    padding:6px 14px; border-radius:999px; margin:0 0 20px;
+  }
+  h1{
+    font-family:var(--f-display); font-weight:900; letter-spacing:.01em;
+    font-size:clamp(1.9rem,6vw,2.6rem); line-height:1.35; margin:0 0 16px;
+    text-wrap:balance;
+  }
+  .lede{font-size:1.06rem; color:var(--ink-2); max-width:56ch; margin:0 0 6px}
+  .lede b{color:var(--ink); font-weight:700}
+  .meta{font-size:.85rem; color:var(--ink-3); margin-top:18px}
+
+  /* ---- toc ---- */
+  .toc{
+    display:grid; grid-template-columns:1fr 1fr; gap:14px;
+    margin:32px 0 8px;
+  }
+  @media (max-width:560px){ .toc{grid-template-columns:1fr} }
+  .toc a{
+    display:block; text-decoration:none; color:var(--ink);
+    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    padding:18px 20px; box-shadow:var(--shadow);
+  }
+  .toc a:hover{border-color:var(--accent)}
+  .toc .toc-eyebrow{
+    font-family:var(--f-display); font-weight:700; font-size:.72rem;
+    letter-spacing:.08em; color:var(--accent-ink); margin-bottom:6px;
+  }
+  .toc .toc-title{font-family:var(--f-display); font-weight:700; font-size:1.08rem}
+
+  /* ---- part sections ---- */
+  .part{margin-top:76px; scroll-margin-top:20px}
+  .part-head{margin-bottom:34px}
+  .part-num{
+    font-family:var(--f-display); font-weight:700; font-size:.8rem;
+    letter-spacing:.08em; color:var(--accent-ink); margin:0 0 8px;
+  }
+  h2{
+    font-family:var(--f-display); font-weight:900; font-size:clamp(1.5rem,4vw,1.9rem);
+    line-height:1.4; margin:0; text-wrap:balance;
+  }
+  h3{
+    font-family:var(--f-display); font-weight:700; font-size:1.18rem;
+    margin:44px 0 14px; text-wrap:balance;
+  }
+  h3:first-of-type{margin-top:8px}
+  p{margin:0 0 16px; max-width:64ch}
+  .lead-p{font-size:1.02rem; color:var(--ink-2); max-width:60ch}
+
+  /* ---- before/after story boxes (numbered = a real sequence of 8 requests) ---- */
+  .story{display:grid; gap:16px; margin:22px 0 12px}
+  .story-item{
+    background:var(--surface); border:1px solid var(--line); border-radius:18px;
+    padding:20px 22px; box-shadow:var(--shadow);
+  }
+  .story-item-head{display:flex; align-items:baseline; gap:12px; margin-bottom:10px}
+  .story-num{
+    font-family:var(--f-display); font-weight:900; font-size:1.3rem; color:var(--accent-ink);
+    flex-shrink:0; width:2ch;
+  }
+  .story-title{font-family:var(--f-display); font-weight:700; font-size:1.05rem}
+  .ba-row{display:grid; grid-template-columns:auto 1fr; gap:6px 12px; font-size:.94rem}
+  .ba-tag{
+    font-family:var(--f-display); font-weight:700; font-size:.72rem; letter-spacing:.04em;
+    padding:3px 10px; border-radius:999px; align-self:start; white-space:nowrap;
+  }
+  .ba-tag.before{background:var(--warn-soft); color:var(--warn)}
+  .ba-tag.after{background:var(--accent-soft); color:var(--accent-ink)}
+  .ba-text{color:var(--ink-2)}
+  .ba-text b{color:var(--ink); font-weight:700}
+  .note-box{
+    background:var(--accent-soft); border-radius:12px; padding:10px 14px; margin-top:12px;
+    font-size:.86rem; color:var(--accent-ink);
+  }
+
+  /* ---- bug items ---- */
+  .bugs{display:grid; gap:14px; margin:22px 0 12px}
+  .bug{
+    background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--warn);
+    border-radius:14px; padding:16px 20px; box-shadow:var(--shadow);
+  }
+  .bug-title{font-family:var(--f-display); font-weight:700; font-size:.98rem; margin-bottom:6px}
+  .bug p{margin:0; font-size:.92rem; color:var(--ink-2); max-width:none}
+  .bug .cause{color:var(--ink); font-weight:500}
+
+  /* ---- recap table ---- */
+  .recap{width:100%; border-collapse:collapse; margin:20px 0 8px; font-size:.94rem}
+  .recap th,.recap td{text-align:left; padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+  .recap th{
+    font-family:var(--f-display); font-weight:700; font-size:.78rem; letter-spacing:.04em;
+    color:var(--ink-3); text-transform:uppercase; border-bottom:2px solid var(--line);
+  }
+  .recap td.before{color:var(--ink-3)}
+  .recap td.after{color:var(--ink); font-weight:500}
+  .recap-wrap{overflow-x:auto; margin:0 0 8px}
+
+  /* ---- flow diagram ---- */
+  .flow{
+    display:flex; align-items:stretch; gap:10px; margin:26px 0 8px; flex-wrap:wrap;
+  }
+  .flow-box{
+    flex:1; min-width:150px; background:var(--surface); border:1px solid var(--line);
+    border-radius:16px; padding:18px 16px; text-align:center; box-shadow:var(--shadow);
+  }
+  .flow-box .fico{font-size:1.8rem; margin-bottom:8px; display:block}
+  .flow-box .ftitle{font-family:var(--f-display); font-weight:700; font-size:.95rem; margin-bottom:4px}
+  .flow-box .fdesc{font-size:.78rem; color:var(--ink-3)}
+  .flow-arrow{
+    display:flex; align-items:center; justify-content:center; color:var(--ink-3);
+    font-size:1.4rem; flex:0 0 auto; padding:0 2px;
+  }
+  @media (max-width:620px){
+    .flow{flex-direction:column}
+    .flow-arrow{transform:rotate(90deg); padding:2px 0}
+  }
+
+  /* ---- service cards ---- */
+  .services{display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin:20px 0 8px}
+  @media (max-width:560px){ .services{grid-template-columns:1fr} }
+  .svc{
+    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    padding:18px 20px; box-shadow:var(--shadow);
+  }
+  .svc-icon{font-size:1.5rem; margin-bottom:8px; display:block}
+  .svc-name{font-family:var(--f-display); font-weight:700; font-size:1rem; margin-bottom:6px}
+  .svc p{font-size:.88rem; color:var(--ink-2); margin:0; max-width:none}
+
+  /* ---- callouts ---- */
+  .callout{
+    border-radius:14px; padding:16px 20px; margin:20px 0; font-size:.92rem;
+    border:1px solid var(--line); background:var(--surface-soft);
+  }
+  .callout.tip{border-color:var(--accent); background:var(--accent-soft)}
+  .callout.warn{border-color:var(--warn); background:var(--warn-soft)}
+  .callout b.h{
+    display:flex; align-items:center; gap:8px;
+    font-family:var(--f-display); font-weight:700; font-size:.92rem; margin-bottom:6px;
+  }
+  .callout.tip b.h{color:var(--accent-ink)}
+  .callout.warn b.h{color:var(--warn)}
+  .callout p{margin:0; max-width:none}
+  .callout ul{margin:8px 0 0; max-width:none}
+
+  /* ---- steps ---- */
+  .steps{list-style:none; margin:22px 0 8px; padding:0; display:grid; gap:14px}
+  .step{
+    display:grid; grid-template-columns:40px 1fr; gap:14px;
+    background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    padding:16px 20px; box-shadow:var(--shadow);
+  }
+  .step-n{
+    font-family:var(--f-display); font-weight:900; font-size:1.1rem; color:var(--paper);
+    background:var(--accent); border-radius:50%; width:34px; height:34px;
+    display:flex; align-items:center; justify-content:center; align-self:start;
+  }
+  .step-title{font-family:var(--f-display); font-weight:700; font-size:.98rem; margin-bottom:4px}
+  .step p{font-size:.88rem; color:var(--ink-2); margin:0; max-width:none}
+
+  code{
+    font-family:var(--f-mono); font-size:.86em; background:var(--surface-soft);
+    padding:2px 6px; border-radius:5px; color:var(--ink);
+  }
+
+  footer{
+    margin-top:80px; padding-top:28px; border-top:1px solid var(--line);
+    font-size:.85rem; color:var(--ink-3);
+  }
+  footer p{max-width:60ch}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">📘 システム担当者向け資料</div>
+    <h1>動物健康管理アプリのつくりかた</h1>
+    <p class="lede">プログラミングの知識がなくても大丈夫です。<b>①最初のアプリから今の形になるまで、何がどう変わったか</b>と、<b>②このアプリを裏で支えている道具（サービス）の説明と設定方法</b>を、順番にやさしく説明します。</p>
+    <div class="meta">対象アプリ: 動物健康管理アプリ（リポジトリ名: AniMediRec）／2026年9月時点の内容</div>
+
+    <div class="toc">
+      <a href="#part1">
+        <div class="toc-eyebrow">第1部</div>
+        <div class="toc-title">最初のアプリから、今のアプリになるまで</div>
+      </a>
+      <a href="#part2">
+        <div class="toc-eyebrow">第2部</div>
+        <div class="toc-title">このアプリを支えている「裏側の道具」</div>
+      </a>
+    </div>
+  </header>
+
+  <!-- ============================================================ -->
+  <!-- 第1部 -->
+  <!-- ============================================================ -->
+  <section class="part" id="part1">
+    <div class="part-head">
+      <p class="part-num">第1部</p>
+      <h2>最初のアプリから、今のアプリになるまで</h2>
+    </div>
+
+    <h3>そもそも、最初は何だったのか</h3>
+    <p class="lead-p">最初にできあがったのは、<b>「1枚のファイルだけで動く、シンプルなメモ帳のようなアプリ」</b>でした。パソコンやスマホの中だけで動き、動物の記録をつけることはできましたが、いくつか弱点がありました。</p>
+    <ul>
+      <li>画面を閉じたり、再読み込みすると<b>記録が全部消えてしまう</b>（保存する場所が無かったため）</li>
+      <li>URLさえ知っていれば<b>誰でも開いて見たり消したりできてしまう</b>（鍵が無かったため）</li>
+      <li>記録をつけたその1台のスマホ・パソコンでしか見られない（他の端末と共有する仕組みが無かったため）</li>
+    </ul>
+    <p>たとえるなら、紙のノートを1冊だけ職場に置いているようなものです。そのノートを無くしたら記録は全部無くなりますし、離れた場所からは見られませんし、誰でも自由にページを破って捨てられてしまいます。今回の改善は、この「1冊のノート」を、<b>「鍵付きで、自動的にコピーが取られ続け、どこからでも見られる仕組み」</b>に作り変える作業でした。</p>
+
+    <h3>どこを、なぜ直したのか（8つの改善）</h3>
+    <p class="lead-p">依頼された8つの改善を、番号順に説明します。</p>
+
+    <div class="story">
+      <div class="story-item">
+        <div class="story-item-head"><span class="story-num">①</span><span class="story-title">施設ごとのログイン</span></div>
+        <div class="ba-row">
+          <span class="ba-tag before">前</span><span class="ba-text">URLを知っていれば、誰でも開いて見たり編集したりできた</span>
+          <span class="ba-tag after">後</span><span class="ba-text"><b>「施設コード」「メールアドレス」「パスワード」</b>を知っている人しか入れないようにした（会社の入館証のようなもの）</span>
+        </div>
+      </div>
+
+      <div class="story-item">
+        <div class="story-item-head"><span class="story-num">②</span><span class="story-title">個体管理番号</span></div>
+        <div class="ba-row">
+          <span class="ba-tag before">前</span><span class="ba-text">同じ名前の動物がいると、どちらの記録か区別できなかった</span>
+          <span class="ba-tag after">後</span><span class="ba-text">動物1匹ごとに<b>「管理番号」</b>をつけられるようにした（本の背表紙にある背番号のようなもの）。番号の重複は保存前にチェックする</span>
+        </div>
+      </div>
+
+      <div class="story-item">
+        <div class="story-item-head"><span class="story-num">③</span><span class="story-title">データの自動保存・自動復元</span></div>
+        <div class="ba-row">
+          <span class="ba-tag before">前</span><span class="ba-text">画面を閉じる・再読み込みすると記録が消えていた</span>
+          <span class="ba-tag after">後</span><span class="ba-text"><b>「クラウド」</b>というインターネット上の保管庫に、記録するたびに自動で保存されるようにした。次に開いた時も続きから見られる</span>
+        </div>
+      </div>
+
+      <div class="story-item">
+        <div class="story-item-head"><span class="story-num">④</span><span class="story-title">クラウドでの同期</span></div>
+        <div class="ba-row">
+          <span class="ba-tag before">前</span><span class="ba-text">記録をつけた、その1台のスマホ・パソコンでしか見られなかった</span>
+          <span class="ba-tag after">後</span><span class="ba-text">同じアカウントでログインすれば、<b>他のスマホやパソコンからも同じ記録がすぐ見られる</b>ようにした</span>
+        </div>
+      </div>
+
+      <div class="story-item">
+        <div class="story-item-head"><span class="story-num">⑤</span><span class="story-title">永続保存（データが消えない仕組み）</span></div>
+        <div class="ba-row">
+          <span class="ba-tag before">前</span><span class="ba-text">個体を消してしまったら、もう元に戻せなかった</span>
+          <span class="ba-tag after">後</span><span class="ba-text"><b>「ゴミ箱」画面</b>を作った。間違えて消してしまっても、30日以内なら元に戻せる</span>
+        </div>
+      </div>
+
+      <div class="story-item">
+        <div class="story-item-head"><span class="story-num">⑥</span><span class="story-title">記録の日付順ソート</span></div>
+        <div class="ba-row">
+          <span class="ba-tag before">前</span><span class="ba-text">過去の日付を後から入力すると、記録の並び順がバラバラになる不具合があった</span>
+          <span class="ba-tag after">後</span><span class="ba-text">日付と時刻の情報をきちんと使うように直し、<b>いつも新しい順にきれいに並ぶ</b>ようにした</span>
+        </div>
+      </div>
+
+      <div class="story-item">
+        <div class="story-item-head"><span class="story-num">⑦</span><span class="story-title">体重グラフの単位</span></div>
+        <div class="ba-row">
+          <span class="ba-tag before">前</span><span class="ba-text">体重は<b>kg（キログラム）</b>でしか記録できなかった</span>
+          <span class="ba-tag after">後</span><span class="ba-text">爬虫類や小鳥のような小さな動物のために、<b>g（グラム）</b>でも記録・グラフ表示できるようにした</span>
+        </div>
+      </div>
+
+      <div class="story-item">
+        <div class="story-item-head"><span class="story-num">⑧</span><span class="story-title">データの書き出し（エクスポート）</span></div>
+        <div class="ba-row">
+          <span class="ba-tag before">前</span><span class="ba-text">記録をアプリの外（Excelや印刷物）で使う方法が無かった</span>
+          <span class="ba-tag after">後</span><span class="ba-text"><b>CSV</b>（Excelで開ける表のファイル）や<b>JSON</b>（データの控え）として保存したり、獣医さんに渡す用の<b>「印刷用カルテ」</b>を作れるようにした</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-box">💡 ①④⑤は、実は「インターネット上に保管庫を用意する」という1つの工事で同時に実現しています。詳しくは第2部で説明します。</div>
+
+    <h3>開発の途中で見つかった、細かい不具合の直し</h3>
+    <p class="lead-p">ソフトウェアづくりでは、<b>1つ直すと、別の場所で新しい問題が見つかる</b>ことがよくあります。これは失敗ではなく、実際にアプリを動かして確かめる（テストする）ことで初めて見つかる、ごく普通の工程です。実際に見つかって直した例を紹介します。</p>
+
+    <div class="bugs">
+      <div class="bug">
+        <div class="bug-title">施設を登録した直後、ボタンが「登録中…」のまま止まってしまう</div>
+        <p><span class="cause">原因:</span> アカウントを作る処理と、その後の保存処理が、ほぼ同時に動いてしまい、ぶつかり合っていた（信号機が縦横同時に青になってしまうようなイメージ）。</p>
+        <p>2つの処理が順番通りに進むよう直し、正しく登録が完了するようにした。</p>
+      </div>
+      <div class="bug">
+        <div class="bug-title">管理者としてログインしても、一部のボタンが表示されない</div>
+        <p><span class="cause">原因:</span> 「このボタンは管理者だけに見せる」という表示の切り替え方に間違いがあった。</p>
+        <p>切り替えの仕組みを作り直し、権限に応じて正しくボタンが出るようにした。</p>
+      </div>
+      <div class="bug">
+        <div class="bug-title">同じ日に体重を2回記録すると、順番が入れ替わることがある</div>
+        <p><span class="cause">原因:</span> 「日付」しか記録していなかったため、同じ日の中での前後関係が決められなかった。</p>
+        <p>記録した順番も合わせて使うようにし、正しい順番で並ぶようにした。</p>
+      </div>
+      <div class="bug">
+        <div class="bug-title">「本当に削除しますか？」等の確認画面が、ブラウザの飾り気ない標準画面のままだった</div>
+        <p>アプリのデザインに合わせた、独自の見た目の確認画面に作り直した。</p>
+      </div>
+    </div>
+
+    <h3>まとめ：最初のアプリと、今のアプリ</h3>
+    <div class="recap-wrap">
+      <table class="recap">
+        <thead><tr><th>項目</th><th>最初のアプリ</th><th>今のアプリ</th></tr></thead>
+        <tbody>
+          <tr><td>使う人の制限</td><td class="before">誰でも見られる</td><td class="after">ログインした人だけ</td></tr>
+          <tr><td>データの保存</td><td class="before">画面を閉じると消える</td><td class="after">自動でずっと残る</td></tr>
+          <tr><td>使える端末</td><td class="before">1台だけ</td><td class="after">どの端末からでも</td></tr>
+          <tr><td>間違えて削除</td><td class="before">戻せない</td><td class="after">30日以内なら復元できる</td></tr>
+          <tr><td>記録の並び順</td><td class="before">崩れることがあった</td><td class="after">常に正しい順番</td></tr>
+          <tr><td>体重の単位</td><td class="before">kgのみ</td><td class="after">kg・gを選べる</td></tr>
+          <tr><td>データの持ち出し</td><td class="before">できない</td><td class="after">CSV・JSON・印刷カルテ</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 第2部 -->
+  <!-- ============================================================ -->
+  <section class="part" id="part2">
+    <div class="part-head">
+      <p class="part-num">第2部</p>
+      <h2>このアプリを支えている「裏側の道具」</h2>
+    </div>
+
+    <h3>全体の仕組みを図で見る</h3>
+    <p class="lead-p">アプリが完成してインターネット上に公開されるまで、3つの場所を経由しています。</p>
+
+    <div class="flow">
+      <div class="flow-box">
+        <span class="fico">💻</span>
+        <div class="ftitle">① 自分のパソコン</div>
+        <div class="fdesc">プログラムの内容を書く・直す場所</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">
+        <span class="fico">🗄️</span>
+        <div class="ftitle">② GitHub</div>
+        <div class="fdesc">変更をすべて記録して保管する金庫</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">
+        <span class="fico">☁️</span>
+        <div class="ftitle">③ Firebase</div>
+        <div class="fdesc">アプリを実際に動かし、公開する場所</div>
+      </div>
+    </div>
+
+    <h3>GitHubとは</h3>
+    <p><b>GitHub（ギットハブ）</b>は、プログラムの文章（ソースコード）を保管しておくための場所です。ただのファイル置き場ではなく、<b>「いつ・誰が・どこを変えたか」を全部記録してくれる、歴史書つきの金庫</b>だと思ってください。</p>
+    <ul>
+      <li>間違えて壊してしまっても、前の状態にいつでも戻せる</li>
+      <li>複数人で同時に作業しても、変更が記録として整理される</li>
+      <li>今回のやり取りも、すべてGitHub上の記録として残っている</li>
+    </ul>
+
+    <h3>Firebaseとは</h3>
+    <p><b>Firebase（ファイアベース）</b>は、Googleが提供している「アプリの裏側」をまるごと用意してくれるサービスです。お店を新しく開くときに、土地・電気・水道・警備員を一つ一つ自分で契約しなくても、まとめて借りられるようなイメージです。今回のアプリでは、次の4つの部品を使っています。</p>
+
+    <div class="services">
+      <div class="svc">
+        <span class="svc-icon">🪪</span>
+        <div class="svc-name">Authentication（受付係）</div>
+        <p>「誰がログインできるか」を管理する部分。①の施設ログインの仕組みを支えている</p>
+      </div>
+      <div class="svc">
+        <span class="svc-icon">🗂️</span>
+        <div class="svc-name">Firestore（記録の棚）</div>
+        <p>動物の情報・記録・体重といったデータをしまっておく、インターネット上の棚（データベース）</p>
+      </div>
+      <div class="svc">
+        <span class="svc-icon">🖼️</span>
+        <div class="svc-name">Storage（写真の倉庫）</div>
+        <p>記録に添付する写真を保管しておく倉庫。容量を節約するため、保存前に自動で写真を小さく圧縮している</p>
+      </div>
+      <div class="svc">
+        <span class="svc-icon">🏬</span>
+        <div class="svc-name">Hosting（お店そのもの）</div>
+        <p>完成したアプリを、インターネット上の1つの住所（URL）として公開する場所。ここを公開すると誰でもアクセスできるようになる</p>
+      </div>
+    </div>
+
+    <h3>なぜ無料で使えるのか、気をつけたいこと</h3>
+    <p>Firebaseには無料で使える範囲（無料枠）があり、この範囲内であれば費用はかかりません。ただし、写真を保管する「Storage」だけは、Google側の決まりで<b>クレジットカードの登録が必要なプラン（Blazeプラン）</b>への変更が必要でした。</p>
+    <div class="callout tip">
+      <b class="h">💡 カードを登録する ＝ お金がかかる、ではない</b>
+      <p>Blazeプランは「使った分だけ支払う」プランですが、<b>無料枠の範囲内であれば請求は0円</b>です。万一使いすぎた場合にすぐ気づけるよう、少額のしきい値で「予算アラーム（使いすぎ通知メール）」も設定してあります。</p>
+    </div>
+
+    <h3>具体的な数字で見る無料枠の余裕</h3>
+    <p class="lead-p">「無料枠」と言われてもピンとこないので、<b>動物50頭・職員5人が使う施設</b>を例に、実際どれくらい余裕があるかを数字で確認する。</p>
+    <div class="recap-wrap">
+      <table class="recap">
+        <thead><tr><th>項目</th><th>この施設での目安</th><th>無料の範囲</th><th>余裕</th></tr></thead>
+        <tbody>
+          <tr><td>記録・体重の保存（書き込み）</td><td class="after">1日あたり約110件</td><td class="before">1日20,000件まで</td><td class="after">1%未満</td></tr>
+          <tr><td>記録を見る（読み取り・通常の日）</td><td class="after">1日あたり約3,000回</td><td class="before">1日50,000回まで</td><td class="after">約6%</td></tr>
+          <tr><td>記録を見る（全データバックアップを押した日）</td><td class="after">上記込みで約13,000回</td><td class="before">1日50,000回まで</td><td class="after">約26%</td></tr>
+          <tr><td>写真の保存容量（現在の頭数分）</td><td class="after">約70MB（50頭×5枚）</td><td class="before">5GB-月まで</td><td class="after">2%未満</td></tr>
+          <tr><td>写真の保存容量（無料枠いっぱいまで）</td><td class="after">—</td><td class="before">5GB ≒ 写真<b>約1万7000枚</b>相当</td><td class="after">—</td></tr>
+          <tr><td>写真を見る（1か月の通信量）</td><td class="after">数十MB程度</td><td class="before">月100GBまで</td><td class="after">ほぼ0%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>どの項目も無料の範囲の<b>3割以下</b>しか使っておらず、通常のご利用であれば日常的に気にされる必要はない。ただし表の中で唯一「使うほど積み上がっていく」項目が<b>写真の保存容量</b>で、ログイン回数や記録の読み書きのように毎日・毎月リセットされるものではない。長く運用するほど写真だけは意識しておくとよい。</p>
+    <div class="callout tip">
+      <b class="h">💡 保存量は「毎月リセット」されない</b>
+      <p>ダウンロード量や記録の読み書き回数は月が変われば元に戻るが、<b>写真の保存容量（5GB）だけは違う</b>。これは「今何GB分の写真を持っているか」を毎月見て判定する仕組みで、新しい写真を追加するたびに合計は増え続け、削除しない限り減らない。もし合計が5GBを超えた状態が続くと、超えた分だけ毎月わずかな金額（1GBあたり約2円程度）が課金され続ける。圧縮後1枚200〜300KB程度なら、5GBに達するまでに約2万枚必要な計算になり、通常のご利用であれば当面心配は不要。</p>
+      <p style="margin-top:10px">（正確には）月末時点の残量ではなく、<b>月内の平均保存量</b>で判定される。Googleの公式説明では、保存料金は秒単位で日割り計算される。例えば月の前半は4GB、後半に写真を追加して6GBになった場合、平均はちょうど5GB-月になり無料枠内におさまる。逆に、月末だけ帳尻を合わせて5GB未満に減らしても、それまでの期間ずっと超過していた分はきちんと課金される。実務上は「合計保存量が5GBを超えたら、超えた分だけ課金され始める」という理解で十分。</p>
+    </div>
+    <p style="font-size:.82rem;color:var(--ink-3)">出典（2026-09時点。Google側の改定で変わる可能性あり）: <a href="https://firebase.google.com/pricing" target="_blank" rel="noopener">Firebase Pricing</a>、<a href="https://firebase.google.com/docs/firestore/pricing" target="_blank" rel="noopener">Cloud Firestoreの料金</a>、<a href="https://cloud.google.com/storage/pricing" target="_blank" rel="noopener">Cloud Storageの料金（Always Free）</a>、<a href="https://firebase.google.com/docs/hosting/usage-quotas-pricing" target="_blank" rel="noopener">Firebase Hostingの使用量・料金</a></p>
+
+    <h3>設定の手順（全体の流れ）</h3>
+    <p class="lead-p">ここでは「何のためにその作業をするのか」を順番に説明する。実際の画面操作・コマンドまで含めた詳しい手順は、別の資料「<a href="migration.html">動物健康管理アプリ お引っ越しガイド</a>」にまとめてある。</p>
+
+    <ol class="steps">
+      <li class="step">
+        <div class="step-n">1</div>
+        <div><div class="step-title">Firebaseのプロジェクトを作る</div><p>この後に出てくる4つの部品（受付係・棚・倉庫・お店）を、まとめて管理する「入れ物」を作る作業</p></div>
+      </li>
+      <li class="step">
+        <div class="step-n">2</div>
+        <div><div class="step-title">ログイン機能をオンにする</div><p>Authentication（受付係）を有効にし、メールアドレスとパスワードでのログインを使えるようにする</p></div>
+      </li>
+      <li class="step">
+        <div class="step-n">3</div>
+        <div><div class="step-title">データの棚（Firestore）を用意する</div><p>動物の情報や記録をしまう場所を作る</p></div>
+      </li>
+      <li class="step">
+        <div class="step-n">4</div>
+        <div><div class="step-title">写真の倉庫（Storage）を用意する</div><p>ここでBlazeプランへの変更（カード登録）が必要になる。予算アラームも合わせて設定する</p></div>
+      </li>
+      <li class="step">
+        <div class="step-n">5</div>
+        <div><div class="step-title">アプリと接続する</div><p>作った入れ物の「住所」のような情報をアプリ側の設定ファイルに書き込み、アプリとFirebaseをつなげる</p></div>
+      </li>
+      <li class="step">
+        <div class="step-n">6</div>
+        <div><div class="step-title">誰が何をできるかのルールを反映する</div><p>「自分の施設のデータしか見れない」「削除は管理者だけ」といった約束事を、Firebase側にも登録する</p></div>
+      </li>
+      <li class="step">
+        <div class="step-n">7</div>
+        <div><div class="step-title">自分のパソコンで動作確認する</div><p>公開する前に、パソコンの中だけで試しに動かしてみて、ちゃんと動くか確認する</p></div>
+      </li>
+      <li class="step">
+        <div class="step-n">8</div>
+        <div><div class="step-title">インターネットに公開する（Hosting）</div><p>確認が終わったら、誰もがアクセスできる1つのURLとして公開する</p></div>
+      </li>
+    </ol>
+
+    <div class="callout warn">
+      <b class="h">⚠️ 気をつけたいこと</b>
+      <ul>
+        <li>「全データバックアップ」ボタンは、施設内の全ての記録を一度に読み込む重い処理。押しすぎないようにする（月1回程度が目安）</li>
+        <li>写真は自動で小さく圧縮してから保存される仕組みになっている。この仕組みを勝手に変えない</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <p>この資料は、動物健康管理アプリの開発の過程をふりかえって作成したものです。わからない言葉や、もっと詳しく知りたい部分があれば、遠慮なく質問してください。</p>
+  </footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>動物健康管理アプリ お引っ越しガイド</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --paper:#FBF7EE; --surface:#FFFFFF; --surface-soft:#F3ECDD;
+    --ink:#3D372F; --ink-2:#6B6255; --ink-3:#9B927F; --line:#E6DDC8;
+    --accent:#1E9E82; --accent-soft:#DEF3EC; --accent-ink:#0F6B57;
+    --warn:#C97A2E; --warn-soft:#FBEBD9;
+    --bad:#C1495A; --bad-soft:#FBE7E9;
+    --shadow:0 1px 2px rgba(61,55,47,.06),0 6px 18px rgba(61,55,47,.05);
+    --f-display:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+    --f-body:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+    --f-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#1B1F1C; --surface:#222824; --surface-soft:#2A302A;
+      --ink:#EDE7D8; --ink-2:#B7AF9C; --ink-3:#857D6C; --line:#3A413A;
+      --accent:#4FCDAE; --accent-soft:#1E332C; --accent-ink:#8FE0C9;
+      --warn:#E3A15C; --warn-soft:#33291A;
+      --bad:#E38A93; --bad-soft:#33201F;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#1B1F1C; --surface:#222824; --surface-soft:#2A302A;
+    --ink:#EDE7D8; --ink-2:#B7AF9C; --ink-3:#857D6C; --line:#3A413A;
+    --accent:#4FCDAE; --accent-soft:#1E332C; --accent-ink:#8FE0C9;
+    --warn:#E3A15C; --warn-soft:#33291A;
+    --bad:#E38A93; --bad-soft:#33201F;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--f-body); font-size:16px; line-height:1.85;
+    padding-inline:20px; padding-block:0 80px; -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent-ink)}
+  :focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
+  .wrap{max-width:760px;margin:0 auto}
+
+  header{padding-block:52px 8px}
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--f-display); font-weight:700; font-size:.78rem;
+    letter-spacing:.06em; color:var(--accent-ink); background:var(--accent-soft);
+    padding:6px 14px; border-radius:999px; margin:0 0 20px;
+  }
+  h1{
+    font-family:var(--f-display); font-weight:900; letter-spacing:.01em;
+    font-size:clamp(1.9rem,6vw,2.6rem); line-height:1.35; margin:0 0 16px; text-wrap:balance;
+  }
+  .lede{font-size:1.06rem; color:var(--ink-2); max-width:58ch; margin:0 0 6px}
+  .lede b{color:var(--ink); font-weight:700}
+  .meta{font-size:.85rem; color:var(--ink-3); margin-top:18px}
+
+  .callout{
+    border-radius:14px; padding:16px 20px; margin:20px 0; font-size:.92rem;
+    border:1px solid var(--line); background:var(--surface-soft);
+  }
+  .callout.tip{border-color:var(--accent); background:var(--accent-soft)}
+  .callout.warn{border-color:var(--warn); background:var(--warn-soft)}
+  .callout b.h{
+    display:flex; align-items:center; gap:8px;
+    font-family:var(--f-display); font-weight:700; font-size:.92rem; margin-bottom:6px;
+  }
+  .callout.tip b.h{color:var(--accent-ink)}
+  .callout.warn b.h{color:var(--warn)}
+  .callout p{margin:0; max-width:none}
+  .callout ul{margin:8px 0 0; max-width:none; padding-left:1.3em}
+  .callout li{margin-bottom:4px}
+
+  /* map / overview */
+  .map{
+    display:grid; gap:10px; margin:28px 0 8px;
+    background:var(--surface); border:1px solid var(--line); border-radius:18px;
+    padding:22px 24px; box-shadow:var(--shadow);
+  }
+  .map-row{display:grid; grid-template-columns:34px 1fr; gap:14px; align-items:start; padding:6px 0}
+  .map-row + .map-row{border-top:1px dashed var(--line); padding-top:16px; margin-top:2px}
+  .map-num{
+    font-family:var(--f-display); font-weight:900; font-size:1.1rem; color:var(--paper);
+    background:var(--accent); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .map-title{font-family:var(--f-display); font-weight:700; font-size:1rem; margin-bottom:2px}
+  .map-desc{font-size:.85rem; color:var(--ink-3)}
+
+  .not-carried{
+    display:flex; gap:10px; align-items:flex-start; margin:24px 0 8px;
+    background:var(--warn-soft); border:1px solid var(--warn); border-radius:14px;
+    padding:14px 18px; font-size:.9rem; color:var(--ink);
+  }
+
+  /* parts */
+  .part{margin-top:72px; scroll-margin-top:20px}
+  .part-head{margin-bottom:30px}
+  .part-num{
+    font-family:var(--f-display); font-weight:700; font-size:.8rem;
+    letter-spacing:.08em; color:var(--accent-ink); margin:0 0 8px;
+  }
+  h2{
+    font-family:var(--f-display); font-weight:900; font-size:clamp(1.4rem,4vw,1.8rem);
+    line-height:1.4; margin:0; text-wrap:balance;
+  }
+  h3{
+    font-family:var(--f-display); font-weight:700; font-size:1.12rem;
+    margin:38px 0 14px; text-wrap:balance;
+  }
+  h3:first-of-type{margin-top:4px}
+  p{margin:0 0 16px; max-width:64ch}
+  .lead-p{font-size:1.0rem; color:var(--ink-2); max-width:60ch}
+  ul.plain, ol.plain{margin:0 0 16px; padding-left:1.35em; max-width:62ch}
+  ul.plain li, ol.plain li{margin-bottom:6px}
+
+  /* toc */
+  .toc{display:grid; gap:10px; margin:32px 0 8px}
+  .toc a{
+    display:flex; align-items:center; gap:14px; text-decoration:none; color:var(--ink);
+    background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    padding:14px 18px; box-shadow:var(--shadow);
+  }
+  .toc a:hover{border-color:var(--accent)}
+  .toc-num{
+    font-family:var(--f-display); font-weight:900; font-size:1rem; color:var(--accent-ink);
+    background:var(--accent-soft); border-radius:50%; width:30px; height:30px; flex:none;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .toc-title{font-family:var(--f-display); font-weight:700; font-size:.98rem}
+
+  /* steps */
+  .steps{list-style:none; margin:22px 0 8px; padding:0; display:grid; gap:14px}
+  .step{
+    display:grid; grid-template-columns:40px 1fr; gap:14px;
+    background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    padding:16px 20px; box-shadow:var(--shadow);
+  }
+  .step-n{
+    font-family:var(--f-display); font-weight:900; font-size:1.05rem; color:var(--paper);
+    background:var(--accent); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center; align-self:start;
+  }
+  .step-title{font-family:var(--f-display); font-weight:700; font-size:.98rem; margin-bottom:4px}
+  .step p{font-size:.9rem; color:var(--ink-2); margin:0 0 8px; max-width:none}
+  .step p:last-child{margin-bottom:0}
+
+  code{
+    font-family:var(--f-mono); font-size:.86em; background:var(--surface-soft);
+    padding:2px 6px; border-radius:5px; color:var(--ink);
+  }
+  pre{
+    background:var(--surface-soft); border:1px solid var(--line); border-radius:12px;
+    padding:14px 16px; overflow-x:auto; margin:10px 0 4px;
+  }
+  pre code{background:none; padding:0; font-size:.85rem; line-height:1.6}
+
+  .tool-pick{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:20px 0 8px}
+  @media (max-width:560px){ .tool-pick{grid-template-columns:1fr} }
+  .tool-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    padding:18px 20px; box-shadow:var(--shadow); position:relative;
+  }
+  .tool-card.rec{border-color:var(--accent)}
+  .tool-tag{
+    display:inline-block; font-family:var(--f-display); font-weight:700; font-size:.68rem;
+    letter-spacing:.05em; color:var(--accent-ink); background:var(--accent-soft);
+    padding:3px 10px; border-radius:999px; margin-bottom:10px;
+  }
+  .tool-name{font-family:var(--f-display); font-weight:700; font-size:1rem; margin-bottom:6px}
+  .tool-card p{font-size:.87rem; color:var(--ink-2); margin:0; max-width:none}
+
+  .recap-wrap{overflow-x:auto; margin:16px 0 8px}
+  .recap{width:100%; border-collapse:collapse; font-size:.9rem}
+  .recap th,.recap td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  .recap th{
+    font-family:var(--f-display); font-weight:700; font-size:.72rem; letter-spacing:.04em;
+    color:var(--ink-3); text-transform:uppercase; border-bottom:2px solid var(--line);
+  }
+  .recap td.hi{color:var(--accent-ink); font-weight:700}
+
+  .bugs{display:grid; gap:14px; margin:22px 0 8px}
+  .bug{
+    background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--warn);
+    border-radius:14px; padding:16px 20px; box-shadow:var(--shadow);
+  }
+  .bug-title{font-family:var(--f-display); font-weight:700; font-size:.98rem; margin-bottom:6px}
+  .bug p{margin:0; font-size:.92rem; color:var(--ink-2); max-width:none}
+
+  footer{
+    margin-top:80px; padding-top:28px; border-top:1px solid var(--line);
+    font-size:.85rem; color:var(--ink-3);
+  }
+  footer p{max-width:60ch}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">📦 システム担当者向け資料</div>
+    <h1>動物健康管理アプリ お引っ越しガイド</h1>
+    <p class="lede">今動いている動物健康管理アプリを、<b>新しいGitHubアカウントと新しいFirebaseプロジェクト</b>に引っ越して、これから自分たちで管理していくための手順書です。パソコンに何も入っていない状態からでも進められます。</p>
+    <div class="not-carried">
+      <span>📭</span>
+      <div><b>今のデータは引き継ぎません。</b>登録済みの動物の記録・写真は移さず、新しい環境はまっさらな状態から使い始めます。</div>
+    </div>
+    <div class="meta">対象アプリ: 動物健康管理アプリ（リポジトリ名: AniMediRec）／2026年9月時点の内容</div>
+  </header>
+
+  <h3 style="margin-top:36px">この作業の全体像</h3>
+  <div class="map">
+    <div class="map-row"><div class="map-num">1</div><div><div class="map-title">アカウントを2つ用意する</div><div class="map-desc">GitHubアカウント・Googleアカウント</div></div></div>
+    <div class="map-row"><div class="map-num">2</div><div><div class="map-title">パソコンに道具を入れる</div><div class="map-desc">GitHub Desktop・Node.js</div></div></div>
+    <div class="map-row"><div class="map-num">3</div><div><div class="map-title">GitHubへ引っ越す</div><div class="map-desc">新しいリポジトリを作り、ソースコードを移す</div></div></div>
+    <div class="map-row"><div class="map-num">4</div><div><div class="map-title">Firebaseを新しく作る</div><div class="map-desc">ログイン機能・データベース・写真保存を有効化</div></div></div>
+    <div class="map-row"><div class="map-num">5</div><div><div class="map-title">接続情報を書き換える</div><div class="map-desc">アプリと新しいFirebaseをつなぐ</div></div></div>
+    <div class="map-row"><div class="map-num">6</div><div><div class="map-title">手元で動作確認する</div><div class="map-desc">自分のパソコンだけで試す</div></div></div>
+    <div class="map-row"><div class="map-num">7</div><div><div class="map-title">インターネットに公開する</div><div class="map-desc">誰でもアクセスできるURLにする</div></div></div>
+  </div>
+
+  <div class="toc">
+    <a href="#p1"><span class="toc-num">1</span><span class="toc-title">アカウントを2つ用意する</span></a>
+    <a href="#p2"><span class="toc-num">2</span><span class="toc-title">パソコンに道具を入れる</span></a>
+    <a href="#p3"><span class="toc-num">3</span><span class="toc-title">GitHubへ引っ越す</span></a>
+    <a href="#p4"><span class="toc-num">4</span><span class="toc-title">Firebaseを新しく作る</span></a>
+    <a href="#p5"><span class="toc-num">5</span><span class="toc-title">接続情報を書き換える</span></a>
+    <a href="#p6"><span class="toc-num">6</span><span class="toc-title">手元で動作確認する</span></a>
+    <a href="#p7"><span class="toc-num">7</span><span class="toc-title">インターネットに公開する</span></a>
+    <a href="#p8"><span class="toc-num">8</span><span class="toc-title">これからのメンテナンス</span></a>
+    <a href="#p9"><span class="toc-num">9</span><span class="toc-title">無料枠を超えないための注意</span></a>
+    <a href="#p10"><span class="toc-num">10</span><span class="toc-title">うまく動かないときは</span></a>
+  </div>
+
+  <!-- ================= PART 1 ================= -->
+  <section class="part" id="p1">
+    <div class="part-head"><p class="part-num">STEP 1</p><h2>アカウントを2つ用意する</h2></div>
+
+    <h3>GitHubアカウント</h3>
+    <ol class="plain">
+      <li><a href="https://github.com/" target="_blank" rel="noopener">github.com</a> を開き、右上の「Sign up」を押す</li>
+      <li>メールアドレス・パスワード・ユーザー名を入力し、案内どおりに進める</li>
+      <li>メールに届く確認コードを入力すれば完了（無料プランでよい）</li>
+    </ol>
+
+    <h3>Googleアカウント</h3>
+    <p class="lead-p">Firebase（この後で使う）はGoogleアカウントでログインして使う。すでに持っていることが多いが、無ければ <a href="https://accounts.google.com/signup" target="_blank" rel="noopener">accounts.google.com</a> から新規作成する。</p>
+  </section>
+
+  <!-- ================= PART 2 ================= -->
+  <section class="part" id="p2">
+    <div class="part-head"><p class="part-num">STEP 2</p><h2>パソコンに道具を入れる</h2></div>
+    <p class="lead-p">GitHubを操作する道具を1つと、Firebaseを操作する道具を1つ入れる。</p>
+
+    <h3>GitHubを操作する道具を選ぶ</h3>
+    <div class="tool-pick">
+      <div class="tool-card rec">
+        <span class="tool-tag">おすすめ</span>
+        <div class="tool-name">GitHub Desktop</div>
+        <p>コマンド入力なし、画面のボタン操作だけでGitHubを使えるアプリ。この資料はこちらを基準に説明する。</p>
+      </div>
+      <div class="tool-card">
+        <div class="tool-name">Git（コマンド操作）</div>
+        <p>ターミナル・コマンドプロンプトに慣れている人向け。<code>git</code>コマンドで同じことができる。</p>
+      </div>
+    </div>
+    <p><a href="https://desktop.github.com/" target="_blank" rel="noopener">desktop.github.com</a> からGitHub Desktopをダウンロード・インストールし、起動したら「Sign in to GitHub.com」からSTEP1で作ったアカウントでログインしておく。</p>
+
+    <h3>Node.js（Firebaseの道具を動かすために必要）</h3>
+    <ol class="plain">
+      <li><a href="https://nodejs.org/" target="_blank" rel="noopener">nodejs.org</a> を開き、<b>LTS版</b>をダウンロード・インストール（既定設定のままでよい）</li>
+      <li>インストール後、コマンドプロンプトを開いて確認する。キーボードの「Windowsキー」（Ctrlの隣にある四角い旗のマークのキー）を押すと画面下に検索欄が出るので、そこに<code>cmd</code>と入力し、表示された「コマンドプロンプト」をクリックして起動する</li>
+    </ol>
+    <pre><code>node --version
+npm --version</code></pre>
+    <p>バージョン番号が表示されればOK。</p>
+  </section>
+
+  <!-- ================= PART 3 ================= -->
+  <section class="part" id="p3">
+    <div class="part-head"><p class="part-num">STEP 3</p><h2>GitHubへ引っ越す</h2></div>
+
+    <ol class="steps">
+      <li class="step">
+        <div class="step-n">1</div>
+        <div>
+          <div class="step-title">今のソースコードを手に入れる</div>
+          <p>事前に配布されたZIPファイル（アプリのソースコード一式）を、デスクトップなど分かりやすい場所に展開（解凍）する。ZIPファイルを右クリックし、「すべて展開」を選ぶと展開できる。</p>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step-n">2</div>
+        <div>
+          <div class="step-title">新しいリポジトリを作る</div>
+          <p>GitHub Desktopのメニュー「File」→「New repository...」で名前（例: <code>AniMediRec</code>）を入力。Local Pathには、手順1で展開したフォルダを指定する。</p>
+          <p>すでに中身が入ったフォルダを指定すると「このフォルダは空ではありません」と聞かれるので、「Add existing repository instead」に進む。</p>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step-n">3</div>
+        <div>
+          <div class="step-title">GitHub上に公開する</div>
+          <p>画面上部の「Publish repository」を押す。ログイン中のアカウント名になっていることを確認し、学外に公開したくなければ「Keep this code private」にチェックを入れたまま「Publish repository」。</p>
+        </div>
+      </li>
+    </ol>
+
+    <div class="callout tip">
+      <b class="h">💡 これで完了</b>
+      <p>新しいGitHubアカウントの下に、ソースコード一式が入ったリポジトリができた。以降ファイルを変更するたびに、画面下の「Summary」欄に一言メモを書いて「Commit to main」→「Push origin」の2ステップで記録・反映していく。</p>
+    </div>
+  </section>
+
+  <!-- ================= PART 4 ================= -->
+  <section class="part" id="p4">
+    <div class="part-head"><p class="part-num">STEP 4</p><h2>Firebaseを新しく作る</h2></div>
+    <p class="lead-p">ここからは真新しいFirebaseプロジェクトを1から作る。</p>
+
+    <h3>4-1. プロジェクトを作成する</h3>
+    <ol class="plain">
+      <li><a href="https://console.firebase.google.com/" target="_blank" rel="noopener">Firebase コンソール</a>を開き、Googleアカウントでログイン</li>
+      <li>「プロジェクトを追加」→ プロジェクト名を入力（例: <code>animedirec-新しい名前</code>）</li>
+      <li>Googleアナリティクスは「今は設定しない」でよい（無料枠の使用に影響しない）</li>
+      <li>作成が終わるまで待つ</li>
+    </ol>
+    <div class="callout tip">
+      <b class="h">💡 料金プランについて（重要）</b>
+      <p>新規プロジェクトは初期状態で無料の<b>Sparkプラン</b>。Authentication・Firestoreはこのままで使えるが、<b>Cloud StorageはGoogleの仕様変更により、新規プロジェクトではBlazeプラン（従量課金プラン）へのアップグレードが必須</b>（＝クレジットカードの登録が必要）。詳しくは4-4で説明する。<b>アップグレード＝即課金ではない</b>（利用量が無料枠内なら請求は0円）。</p>
+    </div>
+
+    <h3>4-2. Authentication（ログイン機能）を有効化する</h3>
+    <p>左メニュー「構築」→「Authentication」→「始める」→「Sign-in method」タブ→「メール / パスワード」を有効にする→保存。</p>
+
+    <h3>4-3. Firestore Database を有効化する</h3>
+    <p>左メニュー「構築」→「Firestore Database」→「データベースの作成」→エディション: Standard →モード: 本番環境モード →リージョン: <code>asia-northeast1</code>（東京）でよい→有効にする。</p>
+
+    <h3>4-4. Cloud Storage を有効化する（Blazeプランへのアップグレードが必要）</h3>
+    <ol class="plain">
+      <li>左メニュー「構築」→「Storage」→「プロジェクトをアップグレード」から <b>Blazeプラン</b>（従量課金）へアップグレードする（クレジットカードの登録が必要）</li>
+      <li>アップグレード後、「Storage」→「始める」→「デフォルトバケットのセットアップ」でバケットのロケーションは<b>「料金不要のロケーション」（US-EAST1固定）を選ぶ</b>→続行→セキュリティルールはデフォルトのまま→完了</li>
+    </ol>
+    <div class="callout tip">
+      <b class="h">💡 ロケーションは「料金不要のロケーション」を選ぶこと</b>
+      <p>「すべてのロケーション」からFirestoreと同じ<code>asia-northeast1</code>（東京）を選ぶこともできるが、Google Cloud Storageの「Always Free（常時無料）」の対象は米国の一部リージョンに限られており、東京リージョンを選ぶとこの無料枠の対象外になってしまう。StorageとFirestoreは別サービスなので<b>リージョンが違っても機能的な問題はない</b>（多少の通信レイテンシは増えるが、体感できるレベルではない）。</p>
+    </div>
+    <div class="callout tip">
+      <b class="h">💡 なぜカード登録が必要でも「実質無料」と言えるのか</b>
+      <p>Blazeプランは「使った分だけ支払う」プランだが、<b>Storageの無料枠（5GB-月保存・月100GBダウンロード等）はBlazeプランの中でも引き続き無料枠として提供される。</b>動物数十頭程度のご利用規模（写真は圧縮済み）であれば、この無料枠を超えることはまず考えられない。ただし想定外の事態に備えて、次の手順で必ず予算アラートを設定する。</p>
+    </div>
+    <div class="callout tip">
+      <b class="h">💡 保存量は「毎月リセット」されない</b>
+      <p>ダウンロード量や記録の読み書き回数は月が変われば元に戻るが、<b>写真の保存容量（5GB）だけは違う</b>。これは「今何GB分の写真を持っているか」を毎月見て判定する仕組みで、新しい写真を追加するたびに合計は増え続け、削除しない限り減らない。もし合計が5GBを超えた状態が続くと、超えた分だけ毎月わずかな金額（1GBあたり約2円程度）が課金され続ける。圧縮後1枚200〜300KB程度なら、5GBに達するまでに約2万枚必要な計算になり、通常のご利用であれば当面心配は不要。</p>
+      <p style="margin-top:10px">（正確には）月末時点の残量ではなく、<b>月内の平均保存量</b>で判定される。Googleの公式説明では、保存料金は秒単位で日割り計算される。例えば月の前半は4GB、後半に写真を追加して6GBになった場合、平均はちょうど5GB-月になり無料枠内におさまる。逆に、月末だけ帳尻を合わせて5GB未満に減らしても、それまでの期間ずっと超過していた分はきちんと課金される。実務上は「合計保存量が5GBを超えたら、超えた分だけ課金され始める」という理解で十分。</p>
+    </div>
+    <p style="font-size:.82rem;color:var(--ink-3)">出典（2026-09時点。Google側の改定で変わる可能性あり）: <a href="https://firebase.google.com/pricing" target="_blank" rel="noopener">Firebase Pricing</a>、<a href="https://firebase.google.com/docs/firestore/pricing" target="_blank" rel="noopener">Cloud Firestoreの料金</a>、<a href="https://cloud.google.com/storage/pricing" target="_blank" rel="noopener">Cloud Storageの料金（Always Free）</a></p>
+    <ol class="plain" start="3">
+      <li>続けて、予算アラートを設定する（安全装置・必須）。<a href="https://console.cloud.google.com/billing" target="_blank" rel="noopener">Google Cloud の請求管理画面</a>を開く（Firebaseと同じGoogleアカウント）→対象の請求先アカウントを選択→左メニュー「予算とアラート」→「予算を作成」</li>
+      <li>名前を入力（例: <code>animedirec-budget</code>）→対象プロジェクトとして4-1で作ったプロジェクトを選択</li>
+      <li>予算額を<b>少額（例: 100円〜500円程度）</b>に設定</li>
+      <li>アラートのしきい値を<b>50%・90%・100%</b>など細かく設定→通知先はデフォルト（請求管理者への自動メール）のままでOK→完了</li>
+    </ol>
+    <div class="callout warn">
+      <b class="h">⚠️ 予算アラートの位置づけ</b>
+      <p>これで、無料枠を超えて課金が発生し始めた場合に<b>すぐメールで気づける</b>ようになる。あくまで通知であり、自動で利用を止める機能ではない点に注意。</p>
+    </div>
+
+    <h3>4-5. ウェブアプリを登録し、接続情報を取得する</h3>
+    <ol class="plain">
+      <li>プロジェクト概要ページ→「&lt;/&gt;」（ウェブ）アイコン→アプリの名前を入力（Hostingの設定はここでは不要）</li>
+      <li>表示される <code>firebaseConfig = { apiKey: ..., ... }</code> の6つの値をコピーする（次のSTEPで使う）</li>
+    </ol>
+  </section>
+
+  <!-- ================= PART 5 ================= -->
+  <section class="part" id="p5">
+    <div class="part-head"><p class="part-num">STEP 5</p><h2>接続情報を書き換える</h2></div>
+    <p class="lead-p">新しいリポジトリの <code>public/firebase-config.js</code> を開き、STEP4-5でコピーした値に置き換える。</p>
+    <pre><code>export const firebaseConfig = {
+  apiKey: "コピーした値",
+  authDomain: "コピーした値",
+  projectId: "コピーした値",
+  storageBucket: "コピーした値",
+  messagingSenderId: "コピーした値",
+  appId: "コピーした値"
+};</code></pre>
+    <p>保存したら、GitHub Desktopで「Commit to main」→「Push origin」して変更を記録する。</p>
+
+    <h3>セキュリティルールを反映する</h3>
+    <p class="lead-p">コマンドプロンプトで、リポジトリのフォルダに移動してから実行する。</p>
+    <pre><code>npm install -g firebase-tools
+firebase login</code></pre>
+    <p>（ブラウザが開くのでGoogleアカウントでログインする）</p>
+    <pre><code>copy .firebaserc.example .firebaserc</code></pre>
+    <p>作成された<code>.firebaserc</code>をテキストエディタで開き、<code>default</code>の値をSTEP4-1で作ったプロジェクトIDに書き換えて保存する。その後、</p>
+    <pre><code>firebase deploy --only firestore:rules,storage:rules</code></pre>
+    <p>を実行すると、権限ルール（<code>firestore.rules</code>・<code>storage.rules</code>）が新しいプロジェクトに反映される。</p>
+    <div class="callout warn">
+      <b class="h">⚠️ Windowsでの注意</b>
+      <p>コマンドは1行ずつ実行し、行末に<code>#</code>から始まる説明は付けない（Windowsのコマンドプロンプトは<code>#</code>をコメントとして扱わずエラーになる）。</p>
+    </div>
+  </section>
+
+  <!-- ================= PART 6 ================= -->
+  <section class="part" id="p6">
+    <div class="part-head"><p class="part-num">STEP 6</p><h2>手元で動作確認する</h2></div>
+    <pre><code>cd public
+python -m http.server 8000</code></pre>
+    <p>（<code>python</code>が見つからない場合は<code>python3</code>または<code>py</code>を試す）</p>
+    <p>ブラウザで <code>http://localhost:8000</code> を開き、「施設を新規登録」から施設・管理者アカウントを作成して、記録の追加などひととおり試す。</p>
+  </section>
+
+  <!-- ================= PART 7 ================= -->
+  <section class="part" id="p7">
+    <div class="part-head"><p class="part-num">STEP 7</p><h2>インターネットに公開する</h2></div>
+    <pre><code>firebase deploy --only hosting</code></pre>
+    <p>実行後に表示されるURL（<code>https://&lt;プロジェクトID&gt;.web.app</code>）が本番URL。スマホ・PC・タブレットからアクセスできる。</p>
+  </section>
+
+  <!-- ================= PART 8 ================= -->
+  <section class="part" id="p8">
+    <div class="part-head"><p class="part-num">STEP 8</p><h2>これからのメンテナンスの流れ</h2></div>
+    <ol class="steps">
+      <li class="step"><div class="step-n">1</div><div><div class="step-title">ソースコードを直す</div><p><code>public/index.html</code>・<code>public/app.js</code>などを編集する。</p></div></li>
+      <li class="step"><div class="step-n">2</div><div><div class="step-title">変更を記録する</div><p>GitHub Desktopで変更内容を確認し、Summaryに一言書いて「Commit to main」。</p></div></li>
+      <li class="step"><div class="step-n">3</div><div><div class="step-title">GitHubに反映する</div><p>「Push origin」でGitHub上のリポジトリに反映する。</p></div></li>
+      <li class="step"><div class="step-n">4</div><div><div class="step-title">動作確認する</div><p>アプリの見た目・動きを変えた場合は、STEP6の方法で手元確認してから進める。</p></div></li>
+      <li class="step"><div class="step-n">5</div><div><div class="step-title">本番に反映する</div><p><code>firebase deploy --only hosting</code>を実行する。ルール（<code>firestore.rules</code>/<code>storage.rules</code>）を変えた時は<code>firebase deploy --only firestore:rules,storage:rules</code>も忘れずに。</p></div></li>
+    </ol>
+  </section>
+
+  <!-- ================= PART 9 ================= -->
+  <section class="part" id="p9">
+    <div class="part-head"><p class="part-num">運用の注意</p><h2>無料枠を超えないための注意</h2></div>
+
+    <p class="lead-p">「無料枠」と言われてもピンとこないので、<b>動物50頭・職員5人が使う施設</b>を例に、実際どれくらい余裕があるかを数字で確認する。施設の人に説明する時にも使える目安。</p>
+    <div class="recap-wrap">
+      <table class="recap">
+        <thead><tr><th>項目</th><th>この施設での目安</th><th>無料の範囲</th><th>余裕</th></tr></thead>
+        <tbody>
+          <tr><td>記録・体重の保存（書き込み）</td><td class="hi">1日あたり約110件</td><td>1日20,000件まで</td><td class="hi">1%未満</td></tr>
+          <tr><td>記録を見る（読み取り・通常の日）</td><td class="hi">1日あたり約3,000回</td><td>1日50,000回まで</td><td class="hi">約6%</td></tr>
+          <tr><td>記録を見る（全データバックアップを押した日）</td><td class="hi">上記込みで約13,000回</td><td>1日50,000回まで</td><td class="hi">約26%</td></tr>
+          <tr><td>写真の保存容量（現在の頭数分）</td><td class="hi">約70MB（50頭×5枚）</td><td>5GB-月まで</td><td class="hi">2%未満</td></tr>
+          <tr><td>写真の保存容量（無料枠いっぱいまで）</td><td>—</td><td>5GB ≒ 写真<b>約1万7000枚</b>相当</td><td>—</td></tr>
+          <tr><td>写真を見る（1か月の通信量）</td><td class="hi">数十MB程度</td><td>月100GBまで</td><td class="hi">ほぼ0%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>どの項目も無料の範囲の<b>3割以下</b>で、通常のご利用であれば日常的に気にされる必要はない。ただし「全データバックアップ」は毎日ではなく月1回程度に、また表の中で唯一「使うほど積み上がっていく」<b>写真の保存容量</b>だけは、他の項目（毎日・毎月リセットされる）と違って長期的に意識しておくとよい（詳しくはSTEP4-4のコラム参照）。</p>
+    <p style="font-size:.82rem;color:var(--ink-3)">出典（2026-09時点。Google側の改定で変わる可能性あり）: <a href="https://firebase.google.com/pricing" target="_blank" rel="noopener">Firebase Pricing</a>、<a href="https://firebase.google.com/docs/firestore/pricing" target="_blank" rel="noopener">Cloud Firestoreの料金</a>、<a href="https://cloud.google.com/storage/pricing" target="_blank" rel="noopener">Cloud Storageの料金（Always Free）</a></p>
+
+    <ul class="plain">
+      <li>写真は自動で圧縮してからアップロードされる（コードを変更しないこと）</li>
+      <li>施設全体のバックアップ（「職員管理」→「全データバックアップ」）は、実行するたびに全記録を読み込む。<b>月1回程度の実行にとどめること</b></li>
+      <li>無料枠の使用状況はFirebaseコンソールの「使用状況とお支払い」、またはGoogle Cloud Consoleの「お支払い」から確認できる</li>
+      <li>STEP4-4で設定した予算アラートのメールが届いたら、想定外にデータの読み書きが増えていないか（無限ループ的な購読漏れ等）を確認する</li>
+    </ul>
+  </section>
+
+  <!-- ================= PART 10 ================= -->
+  <section class="part" id="p10">
+    <div class="part-head"><p class="part-num">困ったら</p><h2>うまく動かないときは</h2></div>
+    <div class="bugs">
+      <div class="bug"><div class="bug-title">ログインできない</div><p>メール/パスワード認証を有効化したか（STEP4-2）を確認する。</p></div>
+      <div class="bug"><div class="bug-title">個体一覧が表示されない</div><p><code>firestore.rules</code>を反映したか（STEP5の「セキュリティルールを反映する」）を確認する。ブラウザの開発者ツール（F12キー）のConsoleタブにエラーが表示される。</p></div>
+      <div class="bug"><div class="bug-title">写真が保存されない</div><p>Storageを有効化したか（STEP4-4、Blazeへのアップグレード含む）、<code>storage.rules</code>を反映したか（STEP5）を確認する。</p></div>
+      <div class="bug"><div class="bug-title">ゴミ箱やCSV出力でエラーが出る</div><p>Firestoreコンソールにインデックス作成を促すリンクが表示されることがある。そのリンクをクリックして作成する。</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>わからない言葉や、もっと詳しく知りたい部分があれば、遠慮なく質問してください。</p>
+  </footer>
+</div>
+
+</body>
+</html>
