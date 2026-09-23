@@ -134,6 +134,22 @@ facilities/{facilityId}/animals/{id}
 - Firebase Hostingの`rewrites`（SPA用キャッチオール）より静的ファイルの配信が
   優先されるため、`firebase.json`側の設定変更は不要。
 
+## 説明資料（ガイドページ）
+
+- `public/guide/overview.html`（アプリのつくりかた）・`public/guide/migration.html`
+  （新しいGitHub/Firebaseへの引っ越し手順）を、アプリ本体とは独立した単独HTMLページ
+  として同梱している。アプリからのリンクは無く、URLを直接知っている人（システム
+  担当者・施設の担当者）向け。
+- デプロイ後のURL: `https://<プロジェクトID>.web.app/guide/overview.html` /
+  `.../guide/migration.html`。
+- 内容は「動物健康管理アプリのつくりかた」「動物健康管理アプリ お引っ越しガイド」
+  という2つの説明用アーティファクトを元にしている。アーティファクト側を更新した
+  場合は、この2ファイルにも反映すること（自動同期はされない）。
+- 新規追加時、公開直後に該当URLへアクセスすると認証読み込み中の画面が表示される
+  不具合を実機で踏んだ。原因は`public/`配下へのファイル追加を`git pull`で
+  ローカルに取り込む前にデプロイしていたため（詳細は`CLAUDE.md`の
+  「よくある落とし穴」参照）。
+
 ## 未実装・既知の制約
 
 `docs/backlog.md` を参照。

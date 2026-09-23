@@ -543,6 +543,23 @@ Firebase側の実際の動作は、2026-09-12にユーザーの実機Firebase環
   ②コマンドの説明はコードブロックの外（前後の地の文）に書く ③OSで挙動が違う
   コマンド（`cp`/`copy`、`python3`/`python`）は両方を明記する。
 
+- **`public/`配下に新しいファイルを追加しても、ローカルで`git pull`してから
+  デプロイしないと公開サイトに反映されない**: `public/guide/`配下に説明ページを
+  2つ追加してGitHubにpushした後、担当者側で`firebase deploy --only hosting`を
+  実行したにもかかわらず、該当URL（`/guide/migration.html`）にアクセスすると
+  アプリ本体（`index.html`）の認証読み込み中画面が表示される不具合を実機で踏んだ。
+  原因は`firebase.json`の設定ではなく、**担当者のパソコンがGitHub Desktopを
+  使っておらず、`git pull`で最新の変更を取り込む前に`firebase deploy`を実行して
+  いたため、ローカルの`public/`フォルダにそのファイルがそもそも存在しなかった**こと。
+  ファイルが存在しないURLへのアクセスはFirebase HostingのSPA用キャッチオール
+  rewrite（`"source": "**" → "/index.html"`）に吸収されるため、見た目上は
+  「ルーティングが壊れている」ように見えるが、実際は「ファイルが無いだけ」という
+  地味な原因だった。対策：`public/`配下にファイルを追加・変更した後は、
+  ①`git pull`（またはGitHub Desktopの場合はFetch/Pull origin）を実行→
+  ②ローカルのフォルダに実際にファイルが存在することを確認→③`firebase deploy`、
+  の順序を必ず徹底するよう案内する。「デプロイしたのに反映されない」報告を
+  受けたら、まずrewrite設定を疑う前に、ローカルの取り込み漏れを疑うこと。
+
 - **タイムゾーンはJST固定**。`recordedAt`は常に`+09:00`を明示的に付与して保存する
   （ブラウザのローカルタイムゾーンに依存しない）。
 - **Firebase接続設定 (`public/firebase-config.js`) の値（APIキー等）は公開して問題ない
